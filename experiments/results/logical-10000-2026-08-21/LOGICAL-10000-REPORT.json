@@ -1,0 +1,168 @@
+{
+  "jobsPerMethod": 10000,
+  "workersPerRun": 400,
+  "methods": [
+    {
+      "method": "payload-1k",
+      "workerId": "logical-payload-1k",
+      "client": {
+        "requests": 10000,
+        "successful": 9993,
+        "failed": 7,
+        "successRate": 0.9993,
+        "requestsPerSecond": 582.9670424221819,
+        "bytesReceived": 10232832,
+        "bytesPerSecond": 596540.380664306,
+        "mebibytesPerSecond": 0.5689052397387562,
+        "latencyMs": {
+          "min": 78.14324499999998,
+          "mean": 670.5003755634001,
+          "p50": 646.8327054999999,
+          "p95": 829.3515866499989,
+          "p99": 1287.5069343400003,
+          "max": 5003.939128
+        },
+        "status": {
+          "200": 9993
+        },
+        "errors": {
+          "TimeoutError": 7
+        }
+      },
+      "target": {
+        "requests": 10000,
+        "bytes": 10240000,
+        "status": {
+          "200": 10000
+        },
+        "cpuUserMs": 17402.758,
+        "cpuSystemMs": 326.889,
+        "rssDeltaMiB": 42.41015625,
+        "targetP95Ms": 634.1436870000034,
+        "eventLoopP95Ms": 10.215423,
+        "maxActive": 400
+      },
+      "volumeMultiplierVsBaseline": 1.0
+    },
+    {
+      "method": "payload-64k",
+      "workerId": "logical-payload-64k",
+      "client": {
+        "requests": 10000,
+        "successful": 10000,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 592.4789822637207,
+        "bytesReceived": 655360000,
+        "bytesPerSecond": 38828702.5816352,
+        "mebibytesPerSecond": 37.02993639148254,
+        "latencyMs": {
+          "min": 210.115655,
+          "mean": 660.1106629626977,
+          "p50": 637.0711214999997,
+          "p95": 903.8556977499991,
+          "p99": 1289.0394977200003,
+          "max": 1405.1629840000005
+        },
+        "status": {
+          "200": 10000
+        },
+        "errors": {}
+      },
+      "target": {
+        "requests": 10000,
+        "bytes": 655360000,
+        "status": {
+          "200": 10000
+        },
+        "cpuUserMs": 17006.232,
+        "cpuSystemMs": 596.689,
+        "rssDeltaMiB": 29.59375,
+        "targetP95Ms": 622.8047420000075,
+        "eventLoopP95Ms": 10.215423,
+        "maxActive": 400
+      },
+      "volumeMultiplierVsBaseline": 64.04483138196738
+    },
+    {
+      "method": "payload-128k",
+      "workerId": "logical-payload-128k",
+      "client": {
+        "requests": 8591,
+        "successful": 8591,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 569.1404904878399,
+        "bytesReceived": 1126039552,
+        "bytesPerSecond": 74598382.36922215,
+        "mebibytesPerSecond": 71.14256131097999,
+        "latencyMs": {
+          "min": 206.847751,
+          "mean": 684.508214465367,
+          "p50": 677.7225930000004,
+          "p95": 751.2771329999998,
+          "p99": 1323.7895532000005,
+          "max": 1468.5892650000005
+        },
+        "status": {
+          "200": 8591
+        },
+        "errors": {}
+      },
+      "target": {
+        "requests": 8591,
+        "bytes": 1126039552,
+        "status": {
+          "200": 8591
+        },
+        "cpuUserMs": 15184.08,
+        "cpuSystemMs": 799.164,
+        "rssDeltaMiB": 35.9453125,
+        "targetP95Ms": 630.2188019999885,
+        "eventLoopP95Ms": 10.223615,
+        "maxActive": 400
+      },
+      "volumeMultiplierVsBaseline": 110.04182928049634
+    },
+    {
+      "method": "slow-25ms",
+      "workerId": "logical-slow-25ms",
+      "client": {
+        "requests": 10000,
+        "successful": 10000,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 589.2678184788194,
+        "bytesReceived": 700000,
+        "bytesPerSecond": 41248.74729351737,
+        "mebibytesPerSecond": 0.039337870877759334,
+        "latencyMs": {
+          "min": 217.637753,
+          "mean": 662.4995741799986,
+          "p50": 667.1558544999998,
+          "p95": 742.8702775999993,
+          "p99": 762.9020349299988,
+          "max": 775.5970839999991
+        },
+        "status": {
+          "200": 10000
+        },
+        "errors": {}
+      },
+      "target": {
+        "requests": 10000,
+        "bytes": 700000,
+        "status": {
+          "200": 10000
+        },
+        "cpuUserMs": 16899.694,
+        "cpuSystemMs": 271.324,
+        "rssDeltaMiB": -64.23046875,
+        "targetP95Ms": 653.6395619999967,
+        "eventLoopP95Ms": 10.239999,
+        "maxActive": 400
+      },
+      "volumeMultiplierVsBaseline": 0.06840726008205744
+    }
+  ]
+}

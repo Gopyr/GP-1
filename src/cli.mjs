@@ -16,7 +16,7 @@ async function loadSettings() {
 }
 
 function showHelp(settings) {
-  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n      --allow-public          Opt in to a public test server you own or are authorized to test\n      --public-test-confirm   Confirms the public target is an approved test server\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 400\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n      --max-bytes <bytes>     Hard response-byte cap (default: 536870912)\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets unless both public opt-ins are supplied,\nconsume response bodies only to count bytes, persist no response bodies, and enforce duration, concurrency, interval, timeout, request, and byte caps.`);
+  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n      --allow-public          Opt in to a public test server you own or are authorized to test\n      --public-test-confirm   Confirms the public target is an approved test server\n      --worker-id <id>        Transparent local worker/run label for logs\n      --method <name>         Transparent benchmark method label\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 400\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n      --max-bytes <bytes>     Hard response-byte cap (default: 536870912)\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets unless both public opt-ins are supplied,\nconsume response bodies only to count bytes, persist no response bodies, and enforce duration, concurrency, interval, timeout, request, and byte caps.`);
 }
 
 function valueFor(argv, index, name) {
@@ -43,7 +43,9 @@ function parseArgs(argv, settings) {
     intervalMs: profile.defaultIntervalMs,
     timeoutMs: 5000,
     maxRequests: profile.defaultMaxRequests,
-    maxBytes: 536870912
+    maxBytes: 536870912,
+    workerId: 'local-run',
+    methodLabel: 'default'
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -58,6 +60,8 @@ function parseArgs(argv, settings) {
     else if (arg === '-t' || arg === '--timeout') options.timeoutMs = Number(valueFor(argv, index++, arg));
     else if (arg === '-m' || arg === '--max-requests') options.maxRequests = Number(valueFor(argv, index++, arg));
     else if (arg === '--max-bytes') options.maxBytes = Number(valueFor(argv, index++, arg));
+    else if (arg === '--worker-id') options.workerId = valueFor(argv, index++, arg);
+    else if (arg === '--method') options.methodLabel = valueFor(argv, index++, arg);
     else if (arg === '-o' || arg === '--output') options.output = valueFor(argv, index++, arg);
     else throw new Error(`Unknown option: ${arg}`);
   }
@@ -104,14 +108,14 @@ function validateTarget(rawUrl, profile, options) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function requestOnce(target, timeoutMs) {
+async function requestOnce(target, timeoutMs, requestContext) {
   const started = performance.now();
   try {
     const response = await fetch(target, {
       method: 'GET',
       redirect: 'manual',
       dispatcher: HTTP_AGENT,
-      headers: { accept: '*/*', 'user-agent': `GP-1/${VERSION}`, connection: 'keep-alive' },
+      headers: { accept: '*/*', 'user-agent': `GP-1/${VERSION} worker/${requestContext.workerId} method/${requestContext.methodLabel}`, connection: 'keep-alive' },
       signal: AbortSignal.timeout(timeoutMs)
     });
     const body = await response.arrayBuffer();
@@ -139,7 +143,7 @@ async function run(options, target) {
     while (running) {
       const requestNumber = nextRequest++;
       if (requestNumber >= limit || bytesObserved >= options.maxBytes || performance.now() - started >= options.durationSeconds * 1000) break;
-      const sample = await requestOnce(target, options.timeoutMs);
+      const sample = await requestOnce(target, options.timeoutMs, options);
       bytesObserved += sample.bytesReceived || 0;
       samples.push(sample);
       if (options.intervalMs > 0) await sleep(options.intervalMs);
@@ -164,6 +168,8 @@ async function run(options, target) {
     timeoutMs: options.timeoutMs,
     maxRequests: options.maxRequests,
     maxBytes: options.maxBytes,
+    workerId: options.workerId,
+    method: options.methodLabel,
     targetClass: isPrivateHost(target.hostname) ? 'private-or-loopback' : 'public-opt-in'
   });
 }

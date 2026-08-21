@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-21T15:54:37.134Z",
+  "config": {
+    "mode": 1,
+    "profile": "lab-experiment",
+    "url": "http://127.0.0.1:8134/gp1-10000/slow?ms=25",
+    "durationSeconds": 120,
+    "concurrency": 400,
+    "intervalMs": 0,
+    "timeoutMs": 5000,
+    "maxRequests": 10000,
+    "maxBytes": 67108864,
+    "workerId": "logical-slow-25ms",
+    "method": "slow-25ms",
+    "targetClass": "private-or-loopback"
+  },
+  "totals": {
+    "requests": 10000,
+    "successful": 10000,
+    "failed": 0,
+    "successRate": 1,
+    "requestsPerSecond": 589.2678184788194,
+    "bytesReceived": 700000,
+    "bytesPerSecond": 41248.74729351737,
+    "mebibytesPerSecond": 0.039337870877759334
+  },
+  "latencyMs": {
+    "min": 217.637753,
+    "mean": 662.4995741799986,
+    "p50": 667.1558544999998,
+    "p95": 742.8702775999993,
+    "p99": 762.9020349299988,
+    "max": 775.5970839999991
+  },
+  "statusCodes": {
+    "200": 10000
+  },
+  "errors": {},
+  "elapsedMs": 16970.212332
+}
