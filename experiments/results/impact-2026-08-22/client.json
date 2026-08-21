@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-21T17:01:11.183Z",
+  "config": {
+    "mode": 1,
+    "profile": "lab-experiment",
+    "url": "http://127.0.0.1:8135/gp1-impact/payload?bytes=65536",
+    "durationSeconds": 120,
+    "concurrency": 400,
+    "intervalMs": 0,
+    "timeoutMs": 5000,
+    "maxRequests": 10000,
+    "maxBytes": 805306368,
+    "workerId": "impact-load-0001",
+    "method": "payload-64k-impact",
+    "targetClass": "private-or-loopback"
+  },
+  "totals": {
+    "requests": 10000,
+    "successful": 10000,
+    "failed": 0,
+    "successRate": 1,
+    "requestsPerSecond": 1060.5047280938309,
+    "bytesReceived": 655360000,
+    "bytesPerSecond": 69501237.8603573,
+    "mebibytesPerSecond": 66.28154550586443
+  },
+  "latencyMs": {
+    "min": 133.32636000000002,
+    "mean": 362.25066470810026,
+    "p50": 323.6244469999999,
+    "p95": 581.9194199000007,
+    "p99": 930.2304869099997,
+    "max": 1156.2835910000003
+  },
+  "statusCodes": {
+    "200": 10000
+  },
+  "errors": {},
+  "elapsedMs": 9429.47234
+}

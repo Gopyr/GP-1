@@ -1,0 +1,33 @@
+{
+  "workerId": "impact-load-0001",
+  "method": "payload-64k-impact",
+  "client": {
+    "requests": 10000,
+    "successful": 10000,
+    "failed": 0,
+    "bytesReceived": 655360000,
+    "mebibytesReceived": 625.0,
+    "mebibytesPerSecond": 66.28154550586443,
+    "requestsPerSecond": 1060.5047280938309,
+    "p95Ms": 581.9194199000007,
+    "p99Ms": 930.2304869099997,
+    "statusCodes": {
+      "200": 10000
+    },
+    "errors": {}
+  },
+  "target": {
+    "requestsReceived": 10000,
+    "responseBytes": 655360000,
+    "statusCodes": {
+      "200": 10000
+    },
+    "cpuUserMs": 9226.726,
+    "cpuSystemMs": 653.007,
+    "rssDeltaMiB": 89.8828125,
+    "targetP95Ms": 439.101326,
+    "eventLoopP95Ms": 10.231807,
+    "eventLoopMaxMs": 592.969727,
+    "maxActiveRequests": 400
+  }
+}
