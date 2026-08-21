@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T12:46:50.368Z",
+  "config": {
+    "mode": 0,
+    "profile": "safe-observation",
+    "url": "http://127.0.0.1:8123/health",
+    "durationSeconds": 5,
+    "concurrency": 4,
+    "intervalMs": 50,
+    "timeoutMs": 5000,
+    "maxRequests": 400
+  },
+  "totals": {
+    "requests": 300,
+    "successful": 300,
+    "failed": 0,
+    "successRate": 1,
+    "requestsPerSecond": 59.465797865281125
+  },
+  "latencyMs": {
+    "min": 15.121680999999626,
+    "mean": 16.33715414666667,
+    "p50": 15.937992499999837,
+    "p95": 16.90617170000005,
+    "p99": 28.90360644,
+    "max": 83.159312
+  },
+  "statusCodes": {
+    "200": 300
+  },
+  "errors": {},
+  "elapsedMs": 5044.916755
+}

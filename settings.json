@@ -1,0 +1,25 @@
+{
+  "mode": 0,
+  "profiles": {
+    "0": {
+      "name": "safe-observation",
+      "description": "Bounded read-only measurements for localhost and private test environments.",
+      "requirePrivateTarget": true,
+      "requireLabConfirm": false,
+      "defaultDurationSeconds": 10,
+      "defaultConcurrency": 5,
+      "defaultIntervalMs": 50,
+      "defaultMaxRequests": 1000
+    },
+    "1": {
+      "name": "lab-experiment",
+      "description": "Explicitly confirmed fault/latency experiments in an isolated lab or authorized staging environment.",
+      "requirePrivateTarget": true,
+      "requireLabConfirm": true,
+      "defaultDurationSeconds": 30,
+      "defaultConcurrency": 10,
+      "defaultIntervalMs": 25,
+      "defaultMaxRequests": 3000
+    }
+  }
+}

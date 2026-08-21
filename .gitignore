@@ -1,0 +1,9 @@
+node_modules/
+npm-debug.log*
+.DS_Store
+.env
+.env.*
+!.env.example
+experiments/results/*.json
+!experiments/results/localhost-baseline.json
+!experiments/results/localhost-fault-profile.json

@@ -1,0 +1,19 @@
+{
+  "name": "gp-1",
+  "version": "0.1.0",
+  "description": "Safe, reproducible HTTP load-testing and service-observation toolkit.",
+  "type": "module",
+  "bin": {
+    "gp-1": "./src/cli.mjs"
+  },
+  "scripts": {
+    "start": "node src/cli.mjs",
+    "help": "node src/cli.mjs --help",
+    "test": "node --test",
+    "check": "npm test && node --check src/cli.mjs && node --check src/metrics.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

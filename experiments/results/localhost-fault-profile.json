@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T12:46:56.444Z",
+  "config": {
+    "mode": 1,
+    "profile": "lab-experiment",
+    "url": "http://127.0.0.1:8124/health",
+    "durationSeconds": 5,
+    "concurrency": 4,
+    "intervalMs": 50,
+    "timeoutMs": 5000,
+    "maxRequests": 400
+  },
+  "totals": {
+    "requests": 216,
+    "successful": 195,
+    "failed": 21,
+    "successRate": 0.9027777777777778,
+    "requestsPerSecond": 43.05084236638531
+  },
+  "latencyMs": {
+    "min": 40.3353790000001,
+    "mean": 41.77126024999997,
+    "p50": 41.24908449999981,
+    "p95": 42.40789650000002,
+    "p99": 55.091447900000006,
+    "max": 107.016726
+  },
+  "statusCodes": {
+    "200": 195,
+    "503": 21
+  },
+  "errors": {},
+  "elapsedMs": 5017.323428000001
+}
