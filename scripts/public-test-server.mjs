@@ -3,7 +3,7 @@ import { performance, monitorEventLoopDelay } from 'node:perf_hooks';
 
 const port = Number(process.env.PORT || 8125);
 const maxDelayMs = 250;
-const maxPayloadBytes = 1024 * 1024;
+const maxPayloadBytes = 4 * 1024 * 1024;
 const publicPrefix = process.env.PUBLIC_PREFIX || '';
 const startedAt = new Date().toISOString();
 const eventLoopMonitor = monitorEventLoopDelay({ resolution: 10 });
@@ -110,7 +110,7 @@ const server = http.createServer((request, response) => {
 server.listen(port, '0.0.0.0', () => {
   console.log(`GP-1 temporary public test server listening on port ${port}`);
   console.log(`Public namespace: ${publicPrefix || '/'}`);
-  console.log('Endpoints: /health, /slow?ms=50, /payload?bytes=1048576, /fault?rate=0.1, /metrics');
+  console.log('Endpoints: /health, /slow?ms=50, /payload?bytes=2097152, /fault?rate=0.1, /metrics');
 });
 
 process.on('SIGTERM', () => server.close(() => process.exit(0)));

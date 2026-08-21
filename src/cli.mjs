@@ -6,7 +6,7 @@ import { summarize } from './metrics.mjs';
 import { Agent } from 'undici';
 
 const VERSION = '0.1.0';
-const HTTP_AGENT = new Agent({ connections: 100, pipelining: 1, keepAliveTimeout: 10_000, keepAliveMaxTimeout: 30_000 });
+const HTTP_AGENT = new Agent({ connections: 400, pipelining: 1, keepAliveTimeout: 10_000, keepAliveMaxTimeout: 30_000 });
 const SETTINGS_PATH = new URL('../settings.json', import.meta.url);
 
 async function loadSettings() {
@@ -16,7 +16,7 @@ async function loadSettings() {
 }
 
 function showHelp(settings) {
-  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n      --allow-public          Opt in to a public test server you own or are authorized to test\n      --public-test-confirm   Confirms the public target is an approved test server\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 100\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n      --max-bytes <bytes>     Hard response-byte cap (default: 536870912)\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets unless both public opt-ins are supplied,\nconsume response bodies only to count bytes, persist no response bodies, and enforce duration, concurrency, interval, timeout, request, and byte caps.`);
+  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n      --allow-public          Opt in to a public test server you own or are authorized to test\n      --public-test-confirm   Confirms the public target is an approved test server\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 400\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n      --max-bytes <bytes>     Hard response-byte cap (default: 536870912)\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets unless both public opt-ins are supplied,\nconsume response bodies only to count bytes, persist no response bodies, and enforce duration, concurrency, interval, timeout, request, and byte caps.`);
 }
 
 function valueFor(argv, index, name) {
@@ -74,7 +74,7 @@ function parseArgs(argv, settings) {
     throw new Error('Numeric options must be non-negative integers');
   }
   if (options.durationSeconds < 1 || options.durationSeconds > 600) throw new Error('--duration must be between 1 and 600 seconds');
-  if (options.concurrency < 1 || options.concurrency > 100) throw new Error('--concurrency must be between 1 and 100');
+  if (options.concurrency < 1 || options.concurrency > 400) throw new Error('--concurrency must be between 1 and 400');
   if (options.intervalMs > 60000) throw new Error('--interval must be between 0 and 60000 ms');
   if (options.timeoutMs < 100 || options.timeoutMs > 60000) throw new Error('--timeout must be between 100 and 60000 ms');
   if (options.maxRequests < 1 || options.maxRequests > 100000) throw new Error('--max-requests must be between 1 and 100000');

@@ -66,6 +66,10 @@ The bandwidth benchmark uses the target's `/payload?bytes=N` endpoint and the GP
 
 The latest high-capacity stage reached 435.22 MiB/s at the client with 100 concurrent workers and 1 MiB payloads. The report describes the multiplier and its limits without treating it as a universal production capacity claim.
 
+## Combo benchmark
+
+The latest combo run combines a 60-second 64 KiB sustained stage with a 30-second 2 MiB burst at 200 workers, followed by a 20-second recovery stage. The report is [`results/combo-2026-08-21/COMBO-REPORT.md`](results/combo-2026-08-21/COMBO-REPORT.md), with raw client reports and target telemetry snapshots beside it.
+
 ## Interpretation
 
 A lower p95 latency is not automatically evidence that a service is healthy. Compare runs made with the same endpoint, server version, hardware, duration, concurrency, interval, and warm-up conditions. Report the exact commit and configuration with any result.
