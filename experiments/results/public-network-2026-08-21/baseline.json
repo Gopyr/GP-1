@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T13:53:59.903Z",
+  "config": {
+    "mode": 0,
+    "profile": "safe-observation",
+    "url": "https://8127-ik9cjnp9xkysqbsja9aek-62c57229.sg1.manus.computer/gp1-exp-20260821/health",
+    "durationSeconds": 10,
+    "concurrency": 10,
+    "intervalMs": 100,
+    "timeoutMs": 5000,
+    "maxRequests": 500,
+    "targetClass": "public-opt-in"
+  },
+  "totals": {
+    "requests": 500,
+    "successful": 500,
+    "failed": 0,
+    "successRate": 1,
+    "requestsPerSecond": 90.56180732248534
+  },
+  "latencyMs": {
+    "min": 3.766529999999875,
+    "mean": 8.214393936000002,
+    "p50": 6.940087000000119,
+    "p95": 8.791644050000137,
+    "p99": 74.24320522999997,
+    "max": 163.201693
+  },
+  "statusCodes": {
+    "200": 500
+  },
+  "errors": {},
+  "elapsedMs": 5521.091228
+}

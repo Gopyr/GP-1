@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T13:54:03.532Z",
+  "config": {
+    "mode": 1,
+    "profile": "lab-experiment",
+    "url": "https://8127-ik9cjnp9xkysqbsja9aek-62c57229.sg1.manus.computer/gp1-exp-20260821/fault?rate=0.05",
+    "durationSeconds": 10,
+    "concurrency": 25,
+    "intervalMs": 20,
+    "timeoutMs": 5000,
+    "maxRequests": 1000,
+    "targetClass": "public-opt-in"
+  },
+  "totals": {
+    "requests": 1000,
+    "successful": 58,
+    "failed": 942,
+    "successRate": 0.058,
+    "requestsPerSecond": 853.057791753905
+  },
+  "latencyMs": {
+    "min": 1.4763550000000123,
+    "mean": 6.010372421999979,
+    "p50": 3.4466599999999517,
+    "p95": 8.029322800000024,
+    "p99": 89.35813450999997,
+    "max": 171.104623
+  },
+  "statusCodes": {
+    "200": 58,
+    "429": 937,
+    "503": 5
+  },
+  "errors": {},
+  "elapsedMs": 1172.253521
+}

@@ -19,12 +19,12 @@ GP-1 is the **flagship project** in the Gopyr profile and the serious successor 
 
 ## Settings modes
 
-GP-1 keeps its operating posture visible in `settings.json` instead of hiding it behind scattered flags. The default is `mode: 0`. `mode: 1` is an explicit lab profile for controlled latency and fault experiments; it requires `--lab-confirm` and still accepts only private or loopback targets.
+GP-1 keeps its operating posture visible in `settings.json` instead of hiding it behind scattered flags. The default is `mode: 0`. `mode: 1` is an explicit lab profile for controlled latency and fault experiments; it requires `--lab-confirm`. Private or loopback targets work by default, while an owned temporary public test server requires both public opt-in flags.
 
 | Mode | Identity | Purpose |
 | --- | --- | --- |
 | `0` | `safe-observation` | Bounded read-only measurements with conservative defaults. |
-| `1` | `lab-experiment` | Confirmed experiments against an isolated lab or authorized private staging environment. |
+| `1` | `lab-experiment` | Confirmed experiments against an isolated lab, authorized staging environment, or explicitly approved temporary public test server. |
 
 The mode switch changes the experiment profile and evidence recorded in the report. It does not turn GP-1 into a public-target attack tool.
 
@@ -75,6 +75,8 @@ node src/cli.mjs \
 | `--output` | Write the JSON report to a file | Optional |
 | `--mode <0|1>` | Override the `settings.json` mode for one run | Uses `settings.json` |
 | `--lab-confirm` | Required by mode `1` | Off by default |
+| `--allow-public` | Opt in to an owned/authorized public test server | Off by default |
+| `--public-test-confirm` | Confirms the public target is an approved test server | Required with `--allow-public` |
 
 GP-1 uses `GET` only, follows no redirects, sends a descriptive user agent, and never persists response bodies. Status codes from the 2xx and 3xx ranges count as successful observations; 4xx, 5xx, timeout, and network errors are reported separately.
 
@@ -84,7 +86,7 @@ The JSON report is designed for comparison between controlled runs. `p50` descri
 
 ## Experiments and data
 
-See [`experiments/README.md`](experiments/README.md) for the local procedure and interpretation notes. The repository includes a real mode=0 baseline at [`experiments/results/localhost-baseline.json`](experiments/results/localhost-baseline.json) with notes in [`experiments/results/localhost-baseline.md`](experiments/results/localhost-baseline.md), plus a mode=1 fault-profile run at [`experiments/results/localhost-fault-profile.json`](experiments/results/localhost-fault-profile.json) with measured impact notes in [`experiments/results/localhost-fault-profile.md`](experiments/results/localhost-fault-profile.md). Other generated result files are ignored so that future experiments can be committed deliberately with their exact environment and method.
+See [`experiments/README.md`](experiments/README.md) for the local procedure and interpretation notes. The repository includes a real mode=0 baseline at [`experiments/results/localhost-baseline.json`](experiments/results/localhost-baseline.json), a mode=1 local fault profile at [`experiments/results/localhost-fault-profile.json`](experiments/results/localhost-fault-profile.json), and a **real public-network experiment** at [`experiments/results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md`](experiments/results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md). The public experiment compares client-side reports with target-side CPU, memory, latency, path, and status metrics, including the actual 429 gateway boundary and target-generated 503 failures.
 
 A responsible experiment record should include the GP-1 commit, selected mode, server version, machine class, endpoint path, duration, concurrency, interval, timeout, request cap, warm-up approach, and any observed server-side CPU, memory, error, or queue metrics. Without those controls, a single latency number is easy to misinterpret.
 
@@ -98,6 +100,8 @@ The request path, mode semantics, report contract, and local demo server are des
 src/cli.mjs                 CLI, guardrails, request runner, JSON reporting
 src/metrics.mjs             Percentile and summary calculations
 scripts/demo-server.mjs     Local-only demo endpoint for reproducible runs
+scripts/public-test-server.mjs Temporary public test server with observability
+scripts/run-public-experiment.sh Bounded public-network experiment runner
 test/metrics.test.mjs       Automated metric tests
 experiments/                Method, report contract, and experiment notes
 ```

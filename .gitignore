@@ -7,3 +7,5 @@ npm-debug.log*
 experiments/results/*.json
 !experiments/results/localhost-baseline.json
 !experiments/results/localhost-fault-profile.json
+
+experiments/results/**/*.log

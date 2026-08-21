@@ -1,0 +1,154 @@
+{
+  "experiment": "public-network-2026-08-21",
+  "serverStartedAt": "2026-08-21T13:53:10.613Z",
+  "targetClass": "temporary public test server owned by GP-1 experiment",
+  "scenarios": {
+    "baseline": {
+      "requests": 500,
+      "byPath": {
+        "/health": 500
+      },
+      "byStatus": {
+        "200": 500
+      },
+      "cpuUserMicros": 277846,
+      "cpuSystemMicros": 28010,
+      "rssBytes": 8421376,
+      "serverMeanLatencyMs": 1.2452540499003977,
+      "serverP95LatencyMs": 1.7364190000007511
+    },
+    "power-latency": {
+      "requests": 1685,
+      "byPath": {
+        "/health": 0,
+        "/slow": 1685
+      },
+      "byStatus": {
+        "200": 1685
+      },
+      "cpuUserMicros": 1006427,
+      "cpuSystemMicros": 147425,
+      "rssBytes": 19038208,
+      "serverMeanLatencyMs": 23.090437410338634,
+      "serverP95LatencyMs": 36.598297000004095
+    },
+    "fault-profile": {
+      "requests": 63,
+      "byPath": {
+        "/fault": 63,
+        "/health": 0,
+        "/slow": 0
+      },
+      "byStatus": {
+        "200": 58,
+        "503": 5
+      },
+      "cpuUserMicros": 62609,
+      "cpuSystemMicros": 3473,
+      "rssBytes": 0,
+      "serverMeanLatencyMs": 22.476609170742652,
+      "serverP95LatencyMs": 36.46628200000123
+    }
+  },
+  "clientReports": {
+    "baseline": {
+      "config": {
+        "mode": 0,
+        "profile": "safe-observation",
+        "url": "https://8127-ik9cjnp9xkysqbsja9aek-62c57229.sg1.manus.computer/gp1-exp-20260821/health",
+        "durationSeconds": 10,
+        "concurrency": 10,
+        "intervalMs": 100,
+        "timeoutMs": 5000,
+        "maxRequests": 500,
+        "targetClass": "public-opt-in"
+      },
+      "totals": {
+        "requests": 500,
+        "successful": 500,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 90.56180732248534
+      },
+      "latencyMs": {
+        "min": 3.766529999999875,
+        "mean": 8.214393936000002,
+        "p50": 6.940087000000119,
+        "p95": 8.791644050000137,
+        "p99": 74.24320522999997,
+        "max": 163.201693
+      },
+      "statusCodes": {
+        "200": 500
+      },
+      "errors": {}
+    },
+    "power-latency": {
+      "config": {
+        "mode": 1,
+        "profile": "lab-experiment",
+        "url": "https://8127-ik9cjnp9xkysqbsja9aek-62c57229.sg1.manus.computer/gp1-exp-20260821/slow?ms=25",
+        "durationSeconds": 20,
+        "concurrency": 50,
+        "intervalMs": 10,
+        "timeoutMs": 5000,
+        "maxRequests": 3000,
+        "targetClass": "public-opt-in"
+      },
+      "totals": {
+        "requests": 3000,
+        "successful": 1685,
+        "failed": 1315,
+        "successRate": 0.5616666666666666,
+        "requestsPerSecond": 1298.343154395505
+      },
+      "latencyMs": {
+        "min": 1.3412889999999607,
+        "mean": 25.35239224066675,
+        "p50": 31.777427499999988,
+        "p95": 46.945029350000006,
+        "p99": 173.94235218999998,
+        "max": 297.63942
+      },
+      "statusCodes": {
+        "200": 1685,
+        "429": 1315
+      },
+      "errors": {}
+    },
+    "fault-profile": {
+      "config": {
+        "mode": 1,
+        "profile": "lab-experiment",
+        "url": "https://8127-ik9cjnp9xkysqbsja9aek-62c57229.sg1.manus.computer/gp1-exp-20260821/fault?rate=0.05",
+        "durationSeconds": 10,
+        "concurrency": 25,
+        "intervalMs": 20,
+        "timeoutMs": 5000,
+        "maxRequests": 1000,
+        "targetClass": "public-opt-in"
+      },
+      "totals": {
+        "requests": 1000,
+        "successful": 58,
+        "failed": 942,
+        "successRate": 0.058,
+        "requestsPerSecond": 853.057791753905
+      },
+      "latencyMs": {
+        "min": 1.4763550000000123,
+        "mean": 6.010372421999979,
+        "p50": 3.4466599999999517,
+        "p95": 8.029322800000024,
+        "p99": 89.35813450999997,
+        "max": 171.104623
+      },
+      "statusCodes": {
+        "200": 58,
+        "429": 937,
+        "503": 5
+      },
+      "errors": {}
+    }
+  }
+}

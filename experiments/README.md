@@ -1,6 +1,6 @@
 # GP-1 experiments
 
-Experiments in this directory are intentionally local and reproducible. They measure the behavior of the included demo server, not the capacity or impact of a third-party service.
+Experiments in this directory are reproducible and scoped. Local runs measure the included demo server directly; the public-network run measures a temporary GP-1 server owned by the project through a real network path. No third-party service is used as a target.
 
 ## Local baseline procedure
 
@@ -47,6 +47,18 @@ node src/cli.mjs \\
 ```
 
 The expected observation is a measurable 503 proportion close to the demo server's `FAIL_EVERY` setting, plus a higher latency distribution from `DELAY_MS`. This is a controlled fault-injection experiment, not an impact test against a public service.
+
+## Public-network experiment
+
+The public experiment runner starts a temporary server with `/health`, `/slow`, `/fault`, and `/metrics` endpoints, then compares GP-1 client reports with target-side request, status, latency, CPU, and memory snapshots. Provide the temporary URL and a direct server metrics URL when running it:
+
+```bash
+GP1_PUBLIC_URL='https://your-temporary-host.example/gp1-exp-namespace' \\
+GP1_SERVER_METRICS_URL='http://127.0.0.1:8127/gp1-exp-namespace' \\
+scripts/run-public-experiment.sh
+```
+
+The published study is [`results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md`](results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md). It includes a 500-request baseline, a 50-worker power ramp, a gateway 429 boundary, and a lower-rate fault run that observed target-generated 503 responses.
 
 ## Interpretation
 

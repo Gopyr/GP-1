@@ -14,7 +14,7 @@ async function loadSettings() {
 }
 
 function showHelp(settings) {
-  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 100\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets, store no response bodies,\nand enforce duration, concurrency, interval, timeout, and request caps.`);
+  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n      --allow-public          Opt in to a public test server you own or are authorized to test\n      --public-test-confirm   Confirms the public target is an approved test server\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 100\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets unless both public opt-ins are supplied,\nstore no response bodies, and enforce duration, concurrency, interval, timeout, and request caps.`);
 }
 
 function valueFor(argv, index, name) {
@@ -34,6 +34,8 @@ function parseArgs(argv, settings) {
     url: null,
     output: null,
     labConfirm: argv.includes('--lab-confirm'),
+    allowPublic: argv.includes('--allow-public'),
+    publicTestConfirm: argv.includes('--public-test-confirm'),
     durationSeconds: profile.defaultDurationSeconds,
     concurrency: profile.defaultConcurrency,
     intervalMs: profile.defaultIntervalMs,
@@ -46,7 +48,7 @@ function parseArgs(argv, settings) {
     if (arg === '-h' || arg === '--help') return { help: true };
     if (arg === '-u' || arg === '--url') options.url = valueFor(argv, index++, arg);
     else if (arg === '--mode') index += 1;
-    else if (arg === '--lab-confirm') continue;
+    else if (arg === '--lab-confirm' || arg === '--allow-public' || arg === '--public-test-confirm') continue;
     else if (arg === '-d' || arg === '--duration') options.durationSeconds = Number(valueFor(argv, index++, arg));
     else if (arg === '-c' || arg === '--concurrency') options.concurrency = Number(valueFor(argv, index++, arg));
     else if (arg === '-i' || arg === '--interval') options.intervalMs = Number(valueFor(argv, index++, arg));
@@ -59,6 +61,9 @@ function parseArgs(argv, settings) {
   if (!options.url) throw new Error('--url is required');
   if (options.profile.requireLabConfirm && !options.labConfirm) {
     throw new Error('mode=1 requires --lab-confirm and is reserved for an isolated lab or authorized staging window');
+  }
+  if (options.allowPublic && !options.publicTestConfirm) {
+    throw new Error('--allow-public requires --public-test-confirm for an approved test server');
   }
   const numeric = ['durationSeconds', 'concurrency', 'intervalMs', 'timeoutMs', 'maxRequests'];
   if (numeric.some((key) => !Number.isFinite(options[key]) || options[key] < 0 || !Number.isInteger(options[key]))) {
@@ -82,12 +87,12 @@ function isPrivateHost(hostname) {
   return false;
 }
 
-function validateTarget(rawUrl, profile) {
+function validateTarget(rawUrl, profile, options) {
   let target;
   try { target = new URL(rawUrl); } catch { throw new Error('Target must be a valid URL'); }
   if (!['http:', 'https:'].includes(target.protocol)) throw new Error('Only http:// and https:// targets are supported');
-  if (profile.requirePrivateTarget && !isPrivateHost(target.hostname)) {
-    throw new Error(`mode profile '${profile.name}' accepts localhost/private targets only`);
+  if (profile.requirePrivateTarget && !isPrivateHost(target.hostname) && !(options.allowPublic && options.publicTestConfirm)) {
+    throw new Error(`mode profile '${profile.name}' accepts localhost/private targets only unless public opt-ins are supplied`);
   }
   return target;
 }
@@ -141,7 +146,8 @@ async function run(options, target) {
     concurrency: options.concurrency,
     intervalMs: options.intervalMs,
     timeoutMs: options.timeoutMs,
-    maxRequests: options.maxRequests
+    maxRequests: options.maxRequests,
+    targetClass: isPrivateHost(target.hostname) ? 'private-or-loopback' : 'public-opt-in'
   });
 }
 
@@ -159,7 +165,7 @@ async function main() {
   }
   const options = parseArgs(process.argv.slice(2), settings);
   if (options.help) return showHelp(settings);
-  const target = validateTarget(options.url, options.profile);
+  const target = validateTarget(options.url, options.profile, options);
   const report = await run(options, target);
   if (options.output) await writeFile(options.output, `${JSON.stringify(report, null, 2)}\n`);
   printReport(report);
