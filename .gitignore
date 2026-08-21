@@ -9,3 +9,5 @@ experiments/results/*.json
 !experiments/results/localhost-fault-profile.json
 
 experiments/results/**/*.log
+__pycache__/
+*.pyc
