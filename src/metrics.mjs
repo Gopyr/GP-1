@@ -12,6 +12,7 @@ export function summarize(samples, elapsedMs, config = {}) {
   const latencies = samples.map((sample) => sample.latencyMs).filter(Number.isFinite);
   const successful = samples.filter((sample) => sample.ok).length;
   const failed = samples.length - successful;
+  const bytesReceived = samples.reduce((sum, sample) => sum + (sample.bytesReceived || 0), 0);
   const statusCodes = {};
   const errors = {};
 
@@ -21,8 +22,9 @@ export function summarize(samples, elapsedMs, config = {}) {
   }
 
   const safeElapsed = Math.max(elapsedMs, 1);
+  const bytesPerSecond = (bytesReceived / safeElapsed) * 1000;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     config,
     totals: {
@@ -30,7 +32,10 @@ export function summarize(samples, elapsedMs, config = {}) {
       successful,
       failed,
       successRate: samples.length ? successful / samples.length : 0,
-      requestsPerSecond: (samples.length / safeElapsed) * 1000
+      requestsPerSecond: (samples.length / safeElapsed) * 1000,
+      bytesReceived,
+      bytesPerSecond,
+      mebibytesPerSecond: bytesPerSecond / (1024 * 1024)
     },
     latencyMs: {
       min: latencies.length ? Math.min(...latencies) : null,

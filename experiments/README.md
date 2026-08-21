@@ -60,6 +60,12 @@ scripts/run-public-experiment.sh
 
 The published study is [`results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md`](results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md). It includes a 500-request baseline, a 50-worker power ramp, a gateway 429 boundary, and a lower-rate fault run that observed target-generated 503 responses.
 
+## Bandwidth benchmark
+
+The bandwidth benchmark uses the target's `/payload?bytes=N` endpoint and the GP-1 byte accounting fields. It runs three stages with 1 KiB, 64 KiB, and 1 MiB responses. The latest measured report is [`results/bandwidth-local-2026-08-21/BANDWIDTH-REPORT.md`](results/bandwidth-local-2026-08-21/BANDWIDTH-REPORT.md), with raw JSON reports beside it.
+
+The latest high-capacity stage reached 435.22 MiB/s at the client with 100 concurrent workers and 1 MiB payloads. The report describes the multiplier and its limits without treating it as a universal production capacity claim.
+
 ## Interpretation
 
 A lower p95 latency is not automatically evidence that a service is healthy. Compare runs made with the same endpoint, server version, hardware, duration, concurrency, interval, and warm-up conditions. Report the exact commit and configuration with any result.

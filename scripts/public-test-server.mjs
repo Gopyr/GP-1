@@ -3,19 +3,22 @@ import { performance } from 'node:perf_hooks';
 
 const port = Number(process.env.PORT || 8125);
 const maxDelayMs = 250;
+const maxPayloadBytes = 1024 * 1024;
 const publicPrefix = process.env.PUBLIC_PREFIX || '';
 const startedAt = new Date().toISOString();
 let requestSequence = 0;
 const metrics = {
   startedAt,
   totalRequests: 0,
+  totalResponseBytes: 0,
   byPath: {},
   byStatus: {},
   latencyMs: { count: 0, min: null, max: null, mean: 0, p50: null, p95: null, samples: [] }
 };
 
-function record(path, status, latencyMs) {
+function record(path, status, latencyMs, responseBytes) {
   metrics.totalRequests += 1;
+  metrics.totalResponseBytes += responseBytes;
   metrics.byPath[path] = (metrics.byPath[path] || 0) + 1;
   metrics.byStatus[status] = (metrics.byStatus[status] || 0) + 1;
   const latency = metrics.latencyMs;
@@ -47,15 +50,21 @@ const server = http.createServer((request, response) => {
     response.end(JSON.stringify({ ok: false, error: 'not found' }));
     return;
   }
+
   let delayMs = 0;
   let status = 200;
   let body;
+  let contentType = 'application/json';
 
   if (path === '/health') {
     body = { ok: true, service: 'GP-1 temporary public test server', mode: 'network-test' };
   } else if (path === '/slow') {
     delayMs = Math.min(Math.max(Number(parsed.searchParams.get('ms') || 50), 0), maxDelayMs);
     body = { ok: true, service: 'GP-1 temporary public test server', delayMs };
+  } else if (path === '/payload') {
+    const bytes = Math.min(Math.max(Number(parsed.searchParams.get('bytes') || 1024), 1), maxPayloadBytes);
+    body = Buffer.alloc(bytes, 0x47);
+    contentType = 'application/octet-stream';
   } else if (path === '/fault') {
     const rate = Math.min(Math.max(Number(parsed.searchParams.get('rate') || 0.1), 0), 0.5);
     const bucket = sequence % 100;
@@ -73,17 +82,17 @@ const server = http.createServer((request, response) => {
   }
 
   setTimeout(() => {
-    const output = path === '/metrics' ? payload() : body;
-    response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-    response.end(JSON.stringify(output));
-    if (path !== '/metrics') record(path, status, performance.now() - started);
+    const output = Buffer.isBuffer(body) ? body : Buffer.from(JSON.stringify(path === '/metrics' ? payload() : body));
+    response.writeHead(status, { 'content-type': contentType, 'cache-control': 'no-store', 'content-length': output.byteLength });
+    response.end(output);
+    if (path !== '/metrics') record(path, status, performance.now() - started, output.byteLength);
   }, delayMs);
 });
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`GP-1 temporary public test server listening on port ${port}`);
   console.log(`Public namespace: ${publicPrefix || '/'}`);
-  console.log('Endpoints: /health, /slow?ms=50, /fault?rate=0.1, /metrics');
+  console.log('Endpoints: /health, /slow?ms=50, /payload?bytes=1048576, /fault?rate=0.1, /metrics');
 });
 
 process.on('SIGTERM', () => server.close(() => process.exit(0)));

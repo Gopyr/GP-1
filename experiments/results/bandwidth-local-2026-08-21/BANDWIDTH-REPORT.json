@@ -1,0 +1,71 @@
+{
+  "experiment": "bandwidth-local-2026-08-21",
+  "stages": [
+    {
+      "name": "baseline-1k",
+      "payloadBytes": "1024",
+      "clientRequests": 1000,
+      "clientBytes": 1024000,
+      "clientMiBPerSecond": 0.6905679351407664,
+      "clientP95Ms": 4.856566049999977,
+      "target": {
+        "targetRequests": 1000,
+        "targetBytes": 1024000,
+        "targetBytesPerSecond": 642660.8400055907,
+        "targetMeanLatencyMs": 1.3662796540000353,
+        "targetP95LatencyMs": 1.9929119999997056,
+        "targetCpuUserMs": 413.14,
+        "targetCpuSystemMs": 28.338,
+        "targetRssDeltaMiB": 8.2734375,
+        "targetStatusDelta": {
+          "200": 1000
+        }
+      },
+      "clientBandwidthMultiplierVs1k": 1.0
+    },
+    {
+      "name": "throughput-64k",
+      "payloadBytes": "65536",
+      "clientRequests": 1073,
+      "clientBytes": 70320128,
+      "clientMiBPerSecond": 88.49231172923699,
+      "clientP95Ms": 50.41781079999999,
+      "target": {
+        "targetRequests": 1073,
+        "targetBytes": 70320128,
+        "targetBytesPerSecond": 74930480.1821894,
+        "targetMeanLatencyMs": 5.748563052098439,
+        "targetP95LatencyMs": 21.951767000000473,
+        "targetCpuUserMs": 691.739,
+        "targetCpuSystemMs": 44.249,
+        "targetRssDeltaMiB": 29.87890625,
+        "targetStatusDelta": {
+          "200": 1073
+        }
+      },
+      "clientBandwidthMultiplierVs1k": 128.14425232645442
+    },
+    {
+      "name": "high-capacity-1m",
+      "payloadBytes": "1048576",
+      "clientRequests": 227,
+      "clientBytes": 238026752,
+      "clientMiBPerSecond": 435.2206118518487,
+      "clientP95Ms": 273.447425,
+      "target": {
+        "targetRequests": 227,
+        "targetBytes": 238026752,
+        "targetBytesPerSecond": 337391177.546388,
+        "targetMeanLatencyMs": 9.341980040869586,
+        "targetP95LatencyMs": 34.969763999999486,
+        "targetCpuUserMs": 265.798,
+        "targetCpuSystemMs": 131.095,
+        "targetRssDeltaMiB": 141.21875,
+        "targetStatusDelta": {
+          "200": 227
+        }
+      },
+      "clientBandwidthMultiplierVs1k": 630.2357663958618
+    }
+  ]
+}

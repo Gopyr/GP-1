@@ -12,8 +12,8 @@ GP-1 is the **flagship project** in the Gopyr profile and the serious successor 
 | --- | --- |
 | **Bounded by default** | Duration, concurrency, timeout, interval, and total request limits are validated before a run. |
 | **Safe target handling** | Loopback and private targets work by default. A public hostname requires an explicit `--allow-public` flag and authorization. |
-| **Read-only HTTP probe** | GP-1 sends `GET` requests only and does not store response bodies. |
-| **Evidence over claims** | Reports include success rate, throughput, status codes, errors, and p50/p95/p99 latency. |
+| **Read-only HTTP probe** | GP-1 sends `GET` requests only, consumes responses to count bytes, and does not persist response bodies. |
+| **Evidence over claims** | Reports include success rate, request throughput, total bytes, MiB/s, status codes, errors, and p50/p95/p99 latency. |
 | **Reproducible experiments** | The repository includes a local demo server and a documented baseline procedure. |
 | **Honest scope** | This is a single-process load generator, not a distributed platform, DDoS tool, scanner, or production SLO system. |
 
@@ -72,6 +72,7 @@ node src/cli.mjs \
 | `--interval` | Delay per worker between requests in milliseconds | `50`, maximum `60000` |
 | `--timeout` | Per-request timeout | `5000`, range `100–60000` |
 | `--max-requests` | Hard cap across the whole run | `1000`, maximum `100000` |
+| `--max-bytes` | Hard cap on response bytes counted | `536870912`, maximum `2147483648` |
 | `--output` | Write the JSON report to a file | Optional |
 | `--mode <0|1>` | Override the `settings.json` mode for one run | Uses `settings.json` |
 | `--lab-confirm` | Required by mode `1` | Off by default |
@@ -82,17 +83,17 @@ GP-1 uses `GET` only, follows no redirects, sends a descriptive user agent, and 
 
 ## Report fields
 
-The JSON report is designed for comparison between controlled runs. `p50` describes the median observed latency, while `p95` and `p99` show the slower tail. `requestsPerSecond` is the number of completed observations divided by elapsed wall-clock time; it is not a claim about maximum server capacity.
+The JSON report is designed for comparison between controlled runs. `p50` describes the median observed latency, while `p95` and `p99` show the slower tail. `requestsPerSecond` is the number of completed observations divided by elapsed wall-clock time. `bytesPerSecond` and `mebibytesPerSecond` are calculated from response bytes actually consumed by the client; they are not claims about maximum server capacity.
 
 ## Experiments and data
 
-See [`experiments/README.md`](experiments/README.md) for the local procedure and interpretation notes. The repository includes a real mode=0 baseline at [`experiments/results/localhost-baseline.json`](experiments/results/localhost-baseline.json), a mode=1 local fault profile at [`experiments/results/localhost-fault-profile.json`](experiments/results/localhost-fault-profile.json), and a **real public-network experiment** at [`experiments/results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md`](experiments/results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md). The public experiment compares client-side reports with target-side CPU, memory, latency, path, and status metrics, including the actual 429 gateway boundary and target-generated 503 failures.
+See [`experiments/README.md`](experiments/README.md) for the local procedure and interpretation notes. The repository includes a real mode=0 baseline at [`experiments/results/localhost-baseline.json`](experiments/results/localhost-baseline.json), a mode=1 local fault profile at [`experiments/results/localhost-fault-profile.json`](experiments/results/localhost-fault-profile.json), a **real public-network experiment** at [`experiments/results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md`](experiments/results/public-network-2026-08-21/PUBLIC-EXPERIMENT.md), and a staged bandwidth benchmark at [`experiments/results/bandwidth-local-2026-08-21/BANDWIDTH-REPORT.md`](experiments/results/bandwidth-local-2026-08-21/BANDWIDTH-REPORT.md). The public experiment compares client-side reports with target-side CPU, memory, latency, path, and status metrics, while the bandwidth report records actual bytes/s and payload-stage multipliers.
 
 A responsible experiment record should include the GP-1 commit, selected mode, server version, machine class, endpoint path, duration, concurrency, interval, timeout, request cap, warm-up approach, and any observed server-side CPU, memory, error, or queue metrics. Without those controls, a single latency number is easy to misinterpret.
 
 ## Architecture
 
-The request path, mode semantics, report contract, and local demo server are described in [`docs/architecture.md`](docs/architecture.md).
+The request path, mode semantics, report contract, and local demo server are described in [`docs/architecture.md`](docs/architecture.md). The bandwidth measurement model and payload stages are documented in [`docs/bandwidth-plan.md`](docs/bandwidth-plan.md).
 
 ## Project layout
 
@@ -102,6 +103,7 @@ src/metrics.mjs             Percentile and summary calculations
 scripts/demo-server.mjs     Local-only demo endpoint for reproducible runs
 scripts/public-test-server.mjs Temporary public test server with observability
 scripts/run-public-experiment.sh Bounded public-network experiment runner
+scripts/run-bandwidth-benchmark.sh Staged payload bandwidth benchmark
 test/metrics.test.mjs       Automated metric tests
 experiments/                Method, report contract, and experiment notes
 ```

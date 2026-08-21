@@ -3,8 +3,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
 import process from 'node:process';
 import { summarize } from './metrics.mjs';
+import { Agent } from 'undici';
 
 const VERSION = '0.1.0';
+const HTTP_AGENT = new Agent({ connections: 100, pipelining: 1, keepAliveTimeout: 10_000, keepAliveMaxTimeout: 30_000 });
 const SETTINGS_PATH = new URL('../settings.json', import.meta.url);
 
 async function loadSettings() {
@@ -14,7 +16,7 @@ async function loadSettings() {
 }
 
 function showHelp(settings) {
-  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n      --allow-public          Opt in to a public test server you own or are authorized to test\n      --public-test-confirm   Confirms the public target is an approved test server\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 100\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets unless both public opt-ins are supplied,\nstore no response bodies, and enforce duration, concurrency, interval, timeout, and request caps.`);
+  console.log(`GP-1 ${VERSION}\n\nFlagship HTTP performance and resilience experiments with explicit mode settings.\n\nUsage:\n  gp-1 --url http://127.0.0.1:8080/health [options]\n\nOptions:\n  -u, --url <url>             Target URL (required)\n      --mode <0|1>            Override settings.json mode for this run\n      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window\n      --allow-public          Opt in to a public test server you own or are authorized to test\n      --public-test-confirm   Confirms the public target is an approved test server\n  -d, --duration <seconds>    Test duration, maximum 600\n  -c, --concurrency <count>   Parallel workers, maximum 100\n  -i, --interval <ms>         Delay per worker between requests\n  -t, --timeout <ms>          Per-request timeout\n  -m, --max-requests <count>  Hard request cap\n      --max-bytes <bytes>     Hard response-byte cap (default: 536870912)\n  -o, --output <file>         Write the JSON report to a file\n  -h, --help                  Show this help\n\nSettings modes:\n  mode=0  safe-observation: bounded read-only measurements\n  mode=1  lab-experiment: explicit lab/staging experiments with confirmation\n\nBoth modes use GET only, require private/loopback targets unless both public opt-ins are supplied,\nconsume response bodies only to count bytes, persist no response bodies, and enforce duration, concurrency, interval, timeout, request, and byte caps.`);
 }
 
 function valueFor(argv, index, name) {
@@ -40,7 +42,8 @@ function parseArgs(argv, settings) {
     concurrency: profile.defaultConcurrency,
     intervalMs: profile.defaultIntervalMs,
     timeoutMs: 5000,
-    maxRequests: profile.defaultMaxRequests
+    maxRequests: profile.defaultMaxRequests,
+    maxBytes: 536870912
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -54,6 +57,7 @@ function parseArgs(argv, settings) {
     else if (arg === '-i' || arg === '--interval') options.intervalMs = Number(valueFor(argv, index++, arg));
     else if (arg === '-t' || arg === '--timeout') options.timeoutMs = Number(valueFor(argv, index++, arg));
     else if (arg === '-m' || arg === '--max-requests') options.maxRequests = Number(valueFor(argv, index++, arg));
+    else if (arg === '--max-bytes') options.maxBytes = Number(valueFor(argv, index++, arg));
     else if (arg === '-o' || arg === '--output') options.output = valueFor(argv, index++, arg);
     else throw new Error(`Unknown option: ${arg}`);
   }
@@ -65,7 +69,7 @@ function parseArgs(argv, settings) {
   if (options.allowPublic && !options.publicTestConfirm) {
     throw new Error('--allow-public requires --public-test-confirm for an approved test server');
   }
-  const numeric = ['durationSeconds', 'concurrency', 'intervalMs', 'timeoutMs', 'maxRequests'];
+  const numeric = ['durationSeconds', 'concurrency', 'intervalMs', 'timeoutMs', 'maxRequests', 'maxBytes'];
   if (numeric.some((key) => !Number.isFinite(options[key]) || options[key] < 0 || !Number.isInteger(options[key]))) {
     throw new Error('Numeric options must be non-negative integers');
   }
@@ -74,6 +78,7 @@ function parseArgs(argv, settings) {
   if (options.intervalMs > 60000) throw new Error('--interval must be between 0 and 60000 ms');
   if (options.timeoutMs < 100 || options.timeoutMs > 60000) throw new Error('--timeout must be between 100 and 60000 ms');
   if (options.maxRequests < 1 || options.maxRequests > 100000) throw new Error('--max-requests must be between 1 and 100000');
+  if (options.maxBytes < 1024 || options.maxBytes > 2147483648) throw new Error('--max-bytes must be between 1024 and 2147483648');
   return options;
 }
 
@@ -105,12 +110,20 @@ async function requestOnce(target, timeoutMs) {
     const response = await fetch(target, {
       method: 'GET',
       redirect: 'manual',
-      headers: { accept: '*/*', 'user-agent': `GP-1/${VERSION}` },
+      dispatcher: HTTP_AGENT,
+      headers: { accept: '*/*', 'user-agent': `GP-1/${VERSION}`, connection: 'keep-alive' },
       signal: AbortSignal.timeout(timeoutMs)
     });
-    return { ok: response.status >= 200 && response.status < 400, status: response.status, latencyMs: performance.now() - started, error: null };
+    const body = await response.arrayBuffer();
+    return {
+      ok: response.status >= 200 && response.status < 400,
+      status: response.status,
+      latencyMs: performance.now() - started,
+      bytesReceived: body.byteLength,
+      error: null
+    };
   } catch (error) {
-    return { ok: false, status: null, latencyMs: performance.now() - started, error: error.name || 'RequestError' };
+    return { ok: false, status: null, latencyMs: performance.now() - started, bytesReceived: 0, error: error.name || 'RequestError' };
   }
 }
 
@@ -119,13 +132,16 @@ async function run(options, target) {
   const started = performance.now();
   let nextRequest = 0;
   let running = true;
+  let bytesObserved = 0;
   const limit = Math.min(options.maxRequests, 100000);
 
   const worker = async () => {
     while (running) {
       const requestNumber = nextRequest++;
-      if (requestNumber >= limit || performance.now() - started >= options.durationSeconds * 1000) break;
-      samples.push(await requestOnce(target, options.timeoutMs));
+      if (requestNumber >= limit || bytesObserved >= options.maxBytes || performance.now() - started >= options.durationSeconds * 1000) break;
+      const sample = await requestOnce(target, options.timeoutMs);
+      bytesObserved += sample.bytesReceived || 0;
+      samples.push(sample);
       if (options.intervalMs > 0) await sleep(options.intervalMs);
     }
   };
@@ -147,6 +163,7 @@ async function run(options, target) {
     intervalMs: options.intervalMs,
     timeoutMs: options.timeoutMs,
     maxRequests: options.maxRequests,
+    maxBytes: options.maxBytes,
     targetClass: isPrivateHost(target.hostname) ? 'private-or-loopback' : 'public-opt-in'
   });
 }
@@ -154,7 +171,7 @@ async function run(options, target) {
 function printReport(report) {
   const { totals, latencyMs } = report;
   console.log(JSON.stringify(report, null, 2));
-  console.error(`GP-1 complete: mode=${report.config.mode}, ${totals.requests} requests, ${totals.requestsPerSecond.toFixed(2)} req/s, p95 ${(latencyMs.p95 ?? 0).toFixed(2)} ms`);
+  console.error(`GP-1 complete: mode=${report.config.mode}, ${totals.requests} requests, ${totals.requestsPerSecond.toFixed(2)} req/s, ${(totals.mebibytesPerSecond ?? 0).toFixed(2)} MiB/s, p95 ${(latencyMs.p95 ?? 0).toFixed(2)} ms`);
 }
 
 async function main() {
