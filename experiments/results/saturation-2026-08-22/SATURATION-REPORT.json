@@ -1,0 +1,374 @@
+{
+  "threshold": {
+    "targetP95Ms": 1000,
+    "eventLoopP95Ms": 250,
+    "rssDeltaMiB": 256,
+    "targetFailureRate": 0.01,
+    "clientTimeoutRate": 0.01
+  },
+  "stages": [
+    {
+      "stage": "c25",
+      "config": {
+        "concurrency": 25,
+        "duration": 30,
+        "payload": 65536,
+        "maxRequests": 5000,
+        "maxBytes": 268435456
+      },
+      "threshold": {
+        "targetP95Ms": 1000,
+        "eventLoopP95Ms": 250,
+        "rssDeltaMiB": 256,
+        "targetFailureRate": 0.01,
+        "clientTimeoutRate": 0.01
+      },
+      "stoppedByThreshold": false,
+      "trigger": null,
+      "client": {
+        "schemaVersion": 2,
+        "generatedAt": "2026-08-21T17:12:55.229Z",
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8136/gp1-saturation/payload?bytes=65536",
+          "durationSeconds": 30,
+          "concurrency": 25,
+          "intervalMs": 0,
+          "timeoutMs": 5000,
+          "maxRequests": 5000,
+          "maxBytes": 268435456,
+          "workerId": "saturation-c25",
+          "method": "saturation-c25",
+          "targetClass": "private-or-loopback"
+        },
+        "totals": {
+          "requests": 4120,
+          "successful": 4120,
+          "failed": 0,
+          "successRate": 1,
+          "requestsPerSecond": 1112.5134550232792,
+          "bytesReceived": 270008320,
+          "bytesPerSecond": 72909681.78840563,
+          "mebibytesPerSecond": 69.53209093895495
+        },
+        "latencyMs": {
+          "min": 5.551268000000164,
+          "mean": 22.29786177475726,
+          "p50": 20.10080149999999,
+          "p95": 39.03197795000028,
+          "p99": 51.68213849000007,
+          "max": 77.76409700000002
+        },
+        "statusCodes": {
+          "200": 4120
+        },
+        "errors": {},
+        "elapsedMs": 3703.325997
+      },
+      "target": {
+        "requests": 4120,
+        "responseBytes": 270008320,
+        "targetP95Ms": 25.315310000001773,
+        "eventLoopP95Ms": 18.710527,
+        "eventLoopMaxMs": 34.930687,
+        "rssDeltaMiB": 48.8984375,
+        "failures": 0,
+        "status": {
+          "200": 4120
+        }
+      }
+    },
+    {
+      "stage": "c50",
+      "config": {
+        "concurrency": 50,
+        "duration": 30,
+        "payload": 65536,
+        "maxRequests": 5000,
+        "maxBytes": 268435456
+      },
+      "threshold": {
+        "targetP95Ms": 1000,
+        "eventLoopP95Ms": 250,
+        "rssDeltaMiB": 256,
+        "targetFailureRate": 0.01,
+        "clientTimeoutRate": 0.01
+      },
+      "stoppedByThreshold": false,
+      "trigger": null,
+      "client": {
+        "schemaVersion": 2,
+        "generatedAt": "2026-08-21T17:13:03.730Z",
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8136/gp1-saturation/payload?bytes=65536",
+          "durationSeconds": 30,
+          "concurrency": 50,
+          "intervalMs": 0,
+          "timeoutMs": 5000,
+          "maxRequests": 5000,
+          "maxBytes": 268435456,
+          "workerId": "saturation-c50",
+          "method": "saturation-c50",
+          "targetClass": "private-or-loopback"
+        },
+        "totals": {
+          "requests": 4145,
+          "successful": 4145,
+          "failed": 0,
+          "successRate": 1,
+          "requestsPerSecond": 499.8226168722672,
+          "bytesReceived": 271646720,
+          "bytesPerSecond": 32756375.019340903,
+          "mebibytesPerSecond": 31.2389135545167
+        },
+        "latencyMs": {
+          "min": 13.162117000000023,
+          "mean": 99.1269064200242,
+          "p50": 90.71251100000018,
+          "p95": 170.4295979999997,
+          "p99": 211.10755976000004,
+          "max": 501.178196
+        },
+        "statusCodes": {
+          "200": 4145
+        },
+        "errors": {},
+        "elapsedMs": 8292.942056
+      },
+      "target": {
+        "requests": 4145,
+        "responseBytes": 271646720,
+        "targetP95Ms": 95.91910599999756,
+        "eventLoopP95Ms": 67.436543,
+        "eventLoopMaxMs": 129.892351,
+        "rssDeltaMiB": 23.7734375,
+        "failures": 0,
+        "status": {
+          "200": 8265
+        }
+      }
+    },
+    {
+      "stage": "c100",
+      "config": {
+        "concurrency": 100,
+        "duration": 30,
+        "payload": 65536,
+        "maxRequests": 5000,
+        "maxBytes": 268435456
+      },
+      "threshold": {
+        "targetP95Ms": 1000,
+        "eventLoopP95Ms": 250,
+        "rssDeltaMiB": 256,
+        "targetFailureRate": 0.01,
+        "clientTimeoutRate": 0.01
+      },
+      "stoppedByThreshold": false,
+      "trigger": null,
+      "client": {
+        "schemaVersion": 2,
+        "generatedAt": "2026-08-21T17:13:15.689Z",
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8136/gp1-saturation/payload?bytes=65536",
+          "durationSeconds": 30,
+          "concurrency": 100,
+          "intervalMs": 0,
+          "timeoutMs": 5000,
+          "maxRequests": 5000,
+          "maxBytes": 268435456,
+          "workerId": "saturation-c100",
+          "method": "saturation-c100",
+          "targetClass": "private-or-loopback"
+        },
+        "totals": {
+          "requests": 4195,
+          "successful": 4195,
+          "failed": 0,
+          "successRate": 1,
+          "requestsPerSecond": 357.4196419885699,
+          "bytesReceived": 274923520,
+          "bytesPerSecond": 23423853.657362916,
+          "mebibytesPerSecond": 22.338727624285617
+        },
+        "latencyMs": {
+          "min": 88.892481,
+          "mean": 276.0266564812875,
+          "p50": 256.74921800000084,
+          "p95": 492.95729269999987,
+          "p99": 552.7737857000006,
+          "max": 1251.953552
+        },
+        "statusCodes": {
+          "200": 4195
+        },
+        "errors": {},
+        "elapsedMs": 11736.903928
+      },
+      "target": {
+        "requests": 4195,
+        "responseBytes": 274923520,
+        "targetP95Ms": 243.25544400000217,
+        "eventLoopP95Ms": 90.177535,
+        "eventLoopMaxMs": 352.321535,
+        "rssDeltaMiB": 3.65625,
+        "failures": 0,
+        "status": {
+          "200": 12460
+        }
+      }
+    },
+    {
+      "stage": "c200",
+      "config": {
+        "concurrency": 200,
+        "duration": 30,
+        "payload": 65536,
+        "maxRequests": 5000,
+        "maxBytes": 268435456
+      },
+      "threshold": {
+        "targetP95Ms": 1000,
+        "eventLoopP95Ms": 250,
+        "rssDeltaMiB": 256,
+        "targetFailureRate": 0.01,
+        "clientTimeoutRate": 0.01
+      },
+      "stoppedByThreshold": false,
+      "trigger": null,
+      "client": {
+        "schemaVersion": 2,
+        "generatedAt": "2026-08-21T17:13:27.006Z",
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8136/gp1-saturation/payload?bytes=65536",
+          "durationSeconds": 30,
+          "concurrency": 200,
+          "intervalMs": 0,
+          "timeoutMs": 5000,
+          "maxRequests": 5000,
+          "maxBytes": 268435456,
+          "workerId": "saturation-c200",
+          "method": "saturation-c200",
+          "targetClass": "private-or-loopback"
+        },
+        "totals": {
+          "requests": 4295,
+          "successful": 4295,
+          "failed": 0,
+          "successRate": 1,
+          "requestsPerSecond": 387.15854006750845,
+          "bytesReceived": 281477120,
+          "bytesPerSecond": 25372822.081864234,
+          "mebibytesPerSecond": 24.19740875421928
+        },
+        "latencyMs": {
+          "min": 116.764229,
+          "mean": 504.04669862654185,
+          "p50": 484.49656199999936,
+          "p95": 645.4862944999994,
+          "p99": 997.9929614000002,
+          "max": 4120.1962220000005
+        },
+        "statusCodes": {
+          "200": 4295
+        },
+        "errors": {},
+        "elapsedMs": 11093.646544
+      },
+      "target": {
+        "requests": 4295,
+        "responseBytes": 281477120,
+        "targetP95Ms": 440.7313209999993,
+        "eventLoopP95Ms": 105.185279,
+        "eventLoopMaxMs": 557.318143,
+        "rssDeltaMiB": 2.61328125,
+        "failures": 0,
+        "status": {
+          "200": 16755
+        }
+      }
+    },
+    {
+      "stage": "c400",
+      "config": {
+        "concurrency": 400,
+        "duration": 30,
+        "payload": 65536,
+        "maxRequests": 5000,
+        "maxBytes": 268435456
+      },
+      "threshold": {
+        "targetP95Ms": 1000,
+        "eventLoopP95Ms": 250,
+        "rssDeltaMiB": 256,
+        "targetFailureRate": 0.01,
+        "clientTimeoutRate": 0.01
+      },
+      "stoppedByThreshold": false,
+      "trigger": null,
+      "client": {
+        "schemaVersion": 2,
+        "generatedAt": "2026-08-21T17:13:37.378Z",
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8136/gp1-saturation/payload?bytes=65536",
+          "durationSeconds": 30,
+          "concurrency": 400,
+          "intervalMs": 0,
+          "timeoutMs": 5000,
+          "maxRequests": 5000,
+          "maxBytes": 268435456,
+          "workerId": "saturation-c400",
+          "method": "saturation-c400",
+          "targetClass": "private-or-loopback"
+        },
+        "totals": {
+          "requests": 4654,
+          "successful": 4413,
+          "failed": 241,
+          "successRate": 0.9482165878813924,
+          "requestsPerSecond": 458.07014030795386,
+          "bytesReceived": 289210368,
+          "bytesPerSecond": 28465542.296578206,
+          "mebibytesPerSecond": 27.146856590822416
+        },
+        "latencyMs": {
+          "min": 138.679102,
+          "mean": 825.0229887713781,
+          "p50": 510.053402,
+          "p95": 4999.74439115,
+          "p99": 5030.05349638,
+          "max": 5039.549437000001
+        },
+        "statusCodes": {
+          "200": 4413
+        },
+        "errors": {
+          "TimeoutError": 241
+        },
+        "elapsedMs": 10160.016099
+      },
+      "target": {
+        "requests": 4605,
+        "responseBytes": 301793280,
+        "targetP95Ms": 476.0671650000004,
+        "eventLoopP95Ms": 206.307327,
+        "eventLoopMaxMs": 559.415295,
+        "rssDeltaMiB": 9.75390625,
+        "failures": 0,
+        "status": {
+          "200": 21360
+        }
+      }
+    }
+  ],
+  "stopReason": null
+}

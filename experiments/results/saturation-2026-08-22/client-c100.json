@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-21T17:13:15.689Z",
+  "config": {
+    "mode": 1,
+    "profile": "lab-experiment",
+    "url": "http://127.0.0.1:8136/gp1-saturation/payload?bytes=65536",
+    "durationSeconds": 30,
+    "concurrency": 100,
+    "intervalMs": 0,
+    "timeoutMs": 5000,
+    "maxRequests": 5000,
+    "maxBytes": 268435456,
+    "workerId": "saturation-c100",
+    "method": "saturation-c100",
+    "targetClass": "private-or-loopback"
+  },
+  "totals": {
+    "requests": 4195,
+    "successful": 4195,
+    "failed": 0,
+    "successRate": 1,
+    "requestsPerSecond": 357.4196419885699,
+    "bytesReceived": 274923520,
+    "bytesPerSecond": 23423853.657362916,
+    "mebibytesPerSecond": 22.338727624285617
+  },
+  "latencyMs": {
+    "min": 88.892481,
+    "mean": 276.0266564812875,
+    "p50": 256.74921800000084,
+    "p95": 492.95729269999987,
+    "p99": 552.7737857000006,
+    "max": 1251.953552
+  },
+  "statusCodes": {
+    "200": 4195
+  },
+  "errors": {},
+  "elapsedMs": 11736.903928
+}

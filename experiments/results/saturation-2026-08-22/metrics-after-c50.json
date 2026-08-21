@@ -1,0 +1,38 @@
+{
+  "startedAt": "2026-08-21T17:12:40.986Z",
+  "totalRequests": 8265,
+  "totalResponseBytes": 541655040,
+  "activeRequests": 1,
+  "maxActiveRequests": 51,
+  "byPath": {
+    "/payload": 8265
+  },
+  "byStatus": {
+    "200": 8265
+  },
+  "latencyMs": {
+    "count": 8265,
+    "min": 0.18891700000131095,
+    "max": 129.51580699999977,
+    "mean": 34.63965131603153,
+    "p50": 22.651950999999826,
+    "p95": 95.91910599999756
+  },
+  "eventLoopDelayMs": {
+    "mean": 16.136345963120565,
+    "p95": 67.436543,
+    "max": 129.892351
+  },
+  "uptimeSeconds": 22.858125046,
+  "memory": {
+    "rss": 132784128,
+    "heapTotal": 43266048,
+    "heapUsed": 20161464,
+    "external": 34649935,
+    "arrayBuffers": 31269022
+  },
+  "cpu": {
+    "user": 11904975,
+    "system": 518618
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-21T17:13:27.004Z",
+  "delta": {
+    "requests": 4295,
+    "responseBytes": 281477120,
+    "targetP95Ms": 440.7313209999993,
+    "eventLoopP95Ms": 105.185279,
+    "eventLoopMaxMs": 557.318143,
+    "rssDeltaMiB": 2.61328125,
+    "failures": 0,
+    "status": {
+      "200": 16755
+    }
+  }
+}

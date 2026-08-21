@@ -1,0 +1,112 @@
+{
+  "threshold": {
+    "targetP95Ms": 1000,
+    "eventLoopP95Ms": 250,
+    "rssDeltaMiB": 256,
+    "targetFailureRate": 0.01,
+    "clientTimeoutRate": 0.01
+  },
+  "stopReason": null,
+  "stages": [
+    {
+      "stage": "c25",
+      "concurrency": 25,
+      "requests": 4120,
+      "bytesMiB": 257.5,
+      "targetP95Ms": 25.315310000001773,
+      "eventLoopP95Ms": 18.710527,
+      "eventLoopMaxMs": 34.930687,
+      "rssDeltaMiB": 48.8984375,
+      "failures": 0,
+      "status": {
+        "200": 4120
+      },
+      "stoppedByThreshold": false,
+      "clientRequests": 4120,
+      "clientSuccess": 4120,
+      "clientFailed": 0,
+      "clientMiBPerSecond": 69.53209093895495,
+      "clientP95Ms": 39.03197795000028
+    },
+    {
+      "stage": "c50",
+      "concurrency": 50,
+      "requests": 4145,
+      "bytesMiB": 259.0625,
+      "targetP95Ms": 95.91910599999756,
+      "eventLoopP95Ms": 67.436543,
+      "eventLoopMaxMs": 129.892351,
+      "rssDeltaMiB": 23.7734375,
+      "failures": 0,
+      "status": {
+        "200": 4145
+      },
+      "stoppedByThreshold": false,
+      "clientRequests": 4145,
+      "clientSuccess": 4145,
+      "clientFailed": 0,
+      "clientMiBPerSecond": 31.2389135545167,
+      "clientP95Ms": 170.4295979999997
+    },
+    {
+      "stage": "c100",
+      "concurrency": 100,
+      "requests": 4195,
+      "bytesMiB": 262.1875,
+      "targetP95Ms": 243.25544400000217,
+      "eventLoopP95Ms": 90.177535,
+      "eventLoopMaxMs": 352.321535,
+      "rssDeltaMiB": 3.65625,
+      "failures": 0,
+      "status": {
+        "200": 4195
+      },
+      "stoppedByThreshold": false,
+      "clientRequests": 4195,
+      "clientSuccess": 4195,
+      "clientFailed": 0,
+      "clientMiBPerSecond": 22.338727624285617,
+      "clientP95Ms": 492.95729269999987
+    },
+    {
+      "stage": "c200",
+      "concurrency": 200,
+      "requests": 4295,
+      "bytesMiB": 268.4375,
+      "targetP95Ms": 440.7313209999993,
+      "eventLoopP95Ms": 105.185279,
+      "eventLoopMaxMs": 557.318143,
+      "rssDeltaMiB": 2.61328125,
+      "failures": 0,
+      "status": {
+        "200": 4295
+      },
+      "stoppedByThreshold": false,
+      "clientRequests": 4295,
+      "clientSuccess": 4295,
+      "clientFailed": 0,
+      "clientMiBPerSecond": 24.19740875421928,
+      "clientP95Ms": 645.4862944999994
+    },
+    {
+      "stage": "c400",
+      "concurrency": 400,
+      "requests": 4605,
+      "bytesMiB": 287.8125,
+      "targetP95Ms": 476.0671650000004,
+      "eventLoopP95Ms": 206.307327,
+      "eventLoopMaxMs": 559.415295,
+      "rssDeltaMiB": 9.75390625,
+      "failures": 0,
+      "status": {
+        "200": 4605
+      },
+      "stoppedByThreshold": false,
+      "clientRequests": 4654,
+      "clientSuccess": 4413,
+      "clientFailed": 241,
+      "clientMiBPerSecond": 27.146856590822416,
+      "clientP95Ms": 4999.74439115
+    }
+  ]
+}
