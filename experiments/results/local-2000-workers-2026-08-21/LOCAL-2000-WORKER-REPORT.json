@@ -1,0 +1,163 @@
+{
+  "processCount": 20,
+  "workersPerProcess": 100,
+  "totalWorkers": 2000,
+  "elapsedMs": 59792.829411,
+  "stages": [
+    {
+      "stage": {
+        "name": "baseline-1k",
+        "path": "payload?bytes=1024",
+        "duration": 10,
+        "interval": 10,
+        "maxRequests": 1000,
+        "maxBytes": 4194304,
+        "processes": 1
+      },
+      "processCount": 1,
+      "workersPerProcess": 100,
+      "totals": {
+        "requests": 1000,
+        "successful": 1000,
+        "failed": 0,
+        "bytesReceived": 1024000,
+        "elapsedMs": 488.13966800000003,
+        "statusCodes": {
+          "200": 1000
+        },
+        "requestsPerSecond": 2048.594010188084,
+        "bytesPerSecond": 2097760.2664325982,
+        "mebibytesPerSecond": 2.000580088074301
+      },
+      "representativeTailLatencyMs": {
+        "p50": 21.87731450000001,
+        "p95": 83.75272088000003,
+        "p99": 83.75272088000003
+      }
+    },
+    {
+      "stage": {
+        "name": "multi-64k-2000w",
+        "path": "payload?bytes=65536",
+        "duration": 30,
+        "interval": 0,
+        "maxRequests": 5000,
+        "maxBytes": 33554432,
+        "processes": 20
+      },
+      "processCount": 20,
+      "workersPerProcess": 100,
+      "totals": {
+        "requests": 14645,
+        "successful": 11112,
+        "failed": 3533,
+        "bytesReceived": 728236032,
+        "elapsedMs": 24131.511480999998,
+        "statusCodes": {
+          "200": 11112
+        },
+        "requestsPerSecond": 606.8828308384568,
+        "bytesPerSecond": 30177804.3440577,
+        "mebibytesPerSecond": 28.77979692846079
+      },
+      "representativeTailLatencyMs": {
+        "p50": 31.955267000000276,
+        "p95": 5058.69828795,
+        "p99": 5058.69828795
+      }
+    },
+    {
+      "stage": {
+        "name": "multi-256k-2000w",
+        "path": "payload?bytes=262144",
+        "duration": 30,
+        "interval": 0,
+        "maxRequests": 5000,
+        "maxBytes": 33554432,
+        "processes": 20
+      },
+      "processCount": 20,
+      "workersPerProcess": 100,
+      "totals": {
+        "requests": 6577,
+        "successful": 3642,
+        "failed": 2935,
+        "bytesReceived": 954728448,
+        "elapsedMs": 15172.375106,
+        "statusCodes": {
+          "200": 3642
+        },
+        "requestsPerSecond": 433.485196223437,
+        "bytesPerSecond": 62925444.522027895,
+        "mebibytesPerSecond": 60.01038028910436
+      },
+      "representativeTailLatencyMs": {
+        "p50": 79.08253100000002,
+        "p95": 5115.2607099199995,
+        "p99": 5115.2607099199995
+      }
+    },
+    {
+      "stage": {
+        "name": "multi-1m-2000w",
+        "path": "payload?bytes=1048576",
+        "duration": 20,
+        "interval": 0,
+        "maxRequests": 2000,
+        "maxBytes": 33554432,
+        "processes": 20
+      },
+      "processCount": 20,
+      "workersPerProcess": 100,
+      "totals": {
+        "requests": 2918,
+        "successful": 1459,
+        "failed": 1459,
+        "bytesReceived": 1529872384,
+        "elapsedMs": 8288.922304,
+        "statusCodes": {
+          "200": 1459
+        },
+        "requestsPerSecond": 352.03611434406326,
+        "bytesPerSecond": 184568310.31722024,
+        "mebibytesPerSecond": 176.01805717203163
+      },
+      "representativeTailLatencyMs": {
+        "p50": 700.547883,
+        "p95": 5075.53961755,
+        "p99": 5075.53961755
+      }
+    },
+    {
+      "stage": {
+        "name": "recovery-1k",
+        "path": "payload?bytes=1024",
+        "duration": 20,
+        "interval": 10,
+        "maxRequests": 2000,
+        "maxBytes": 8388608,
+        "processes": 1
+      },
+      "processCount": 1,
+      "workersPerProcess": 100,
+      "totals": {
+        "requests": 2000,
+        "successful": 2000,
+        "failed": 0,
+        "bytesReceived": 2048000,
+        "elapsedMs": 6373.325201,
+        "statusCodes": {
+          "200": 2000
+        },
+        "requestsPerSecond": 313.80793179770467,
+        "bytesPerSecond": 321339.3221608496,
+        "mebibytesPerSecond": 0.30645305839619597
+      },
+      "representativeTailLatencyMs": {
+        "p50": 273.6884150000001,
+        "p95": 534.4991907800003,
+        "p99": 534.4991907800003
+      }
+    }
+  ]
+}

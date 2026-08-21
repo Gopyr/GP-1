@@ -1,0 +1,188 @@
+{
+  "processCount": 20,
+  "workersPerProcess": 100,
+  "totalWorkers": 2000,
+  "stages": [
+    {
+      "name": "baseline-1k",
+      "client": {
+        "requests": 1000,
+        "successful": 1000,
+        "failed": 0,
+        "bytesReceived": 1024000,
+        "elapsedMs": 488.13966800000003,
+        "statusCodes": {
+          "200": 1000
+        },
+        "requestsPerSecond": 2048.594010188084,
+        "bytesPerSecond": 2097760.2664325982,
+        "mebibytesPerSecond": 2.000580088074301
+      },
+      "statusCodes": {
+        "200": 1000
+      },
+      "errors": {},
+      "target": {
+        "requests": 1000,
+        "bytes": 1024000,
+        "status": {
+          "200": 1000
+        },
+        "cpuUserMs": 246.832,
+        "cpuSystemMs": 41.756,
+        "rssDeltaMiB": 13.23828125,
+        "targetP95Ms": 7.6081429999994725,
+        "eventLoopP95Ms": 10.199039,
+        "maxActive": 69
+      },
+      "volumeMultiplierVsBaseline": 1.0,
+      "bandwidthMultiplierVsBaseline": 1.0
+    },
+    {
+      "name": "multi-64k-2000w",
+      "client": {
+        "requests": 14645,
+        "successful": 11112,
+        "failed": 3533,
+        "bytesReceived": 728236032,
+        "elapsedMs": 24131.511480999998,
+        "statusCodes": {
+          "200": 11112
+        },
+        "requestsPerSecond": 606.8828308384568,
+        "bytesPerSecond": 30177804.3440577,
+        "mebibytesPerSecond": 28.77979692846079
+      },
+      "statusCodes": {
+        "200": 11112
+      },
+      "errors": {
+        "TimeoutError": 3533
+      },
+      "target": {
+        "requests": 12430,
+        "bytes": 814612480,
+        "status": {
+          "200": 12430
+        },
+        "cpuUserMs": 22755.717,
+        "cpuSystemMs": 864.053,
+        "rssDeltaMiB": 62.515625,
+        "targetP95Ms": 123.7551370000001,
+        "eventLoopP95Ms": 48.234495,
+        "maxActive": 302
+      },
+      "volumeMultiplierVsBaseline": 711.168,
+      "bandwidthMultiplierVsBaseline": 14.38572597019266
+    },
+    {
+      "name": "multi-256k-2000w",
+      "client": {
+        "requests": 6577,
+        "successful": 3642,
+        "failed": 2935,
+        "bytesReceived": 954728448,
+        "elapsedMs": 15172.375106,
+        "statusCodes": {
+          "200": 3642
+        },
+        "requestsPerSecond": 433.485196223437,
+        "bytesPerSecond": 62925444.522027895,
+        "mebibytesPerSecond": 60.01038028910436
+      },
+      "statusCodes": {
+        "200": 3642
+      },
+      "errors": {
+        "TimeoutError": 2935
+      },
+      "target": {
+        "requests": 4451,
+        "bytes": 1162674176,
+        "status": {
+          "200": 4451
+        },
+        "cpuUserMs": 15154.274,
+        "cpuSystemMs": 618.951,
+        "rssDeltaMiB": 0.45703125,
+        "targetP95Ms": 95.31218600000284,
+        "eventLoopP95Ms": 47.349759,
+        "maxActive": 302
+      },
+      "volumeMultiplierVsBaseline": 932.352,
+      "bandwidthMultiplierVsBaseline": 29.996489841538196
+    },
+    {
+      "name": "multi-1m-2000w",
+      "client": {
+        "requests": 2918,
+        "successful": 1459,
+        "failed": 1459,
+        "bytesReceived": 1529872384,
+        "elapsedMs": 8288.922304,
+        "statusCodes": {
+          "200": 1459
+        },
+        "requestsPerSecond": 352.03611434406326,
+        "bytesPerSecond": 184568310.31722024,
+        "mebibytesPerSecond": 176.01805717203163
+      },
+      "statusCodes": {
+        "200": 1459
+      },
+      "errors": {
+        "TimeoutError": 1459
+      },
+      "target": {
+        "requests": 2012,
+        "bytes": 1909981184,
+        "status": {
+          "200": 2012
+        },
+        "cpuUserMs": 7960.111,
+        "cpuSystemMs": 676.032,
+        "rssDeltaMiB": 0.30859375,
+        "targetP95Ms": 74.81734399999914,
+        "eventLoopP95Ms": 45.711359,
+        "maxActive": 302
+      },
+      "volumeMultiplierVsBaseline": 1494.016,
+      "bandwidthMultiplierVsBaseline": 87.9835094937196
+    },
+    {
+      "name": "recovery-1k",
+      "client": {
+        "requests": 2000,
+        "successful": 2000,
+        "failed": 0,
+        "bytesReceived": 2048000,
+        "elapsedMs": 6373.325201,
+        "statusCodes": {
+          "200": 2000
+        },
+        "requestsPerSecond": 313.80793179770467,
+        "bytesPerSecond": 321339.3221608496,
+        "mebibytesPerSecond": 0.30645305839619597
+      },
+      "statusCodes": {
+        "200": 2000
+      },
+      "errors": {},
+      "target": {
+        "requests": 2000,
+        "bytes": 2048000,
+        "status": {
+          "200": 2000
+        },
+        "cpuUserMs": 6311.383,
+        "cpuSystemMs": 68.739,
+        "rssDeltaMiB": 5.72265625,
+        "targetP95Ms": 253.12780400000338,
+        "eventLoopP95Ms": 48.168959,
+        "maxActive": 302
+      },
+      "volumeMultiplierVsBaseline": 2.0,
+      "bandwidthMultiplierVsBaseline": 0.1531820996434982
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-21T15:38:49.531Z",
+  "config": {
+    "mode": 1,
+    "profile": "lab-experiment",
+    "url": "http://127.0.0.1:8133/gp1-2000/payload?bytes=262144",
+    "durationSeconds": 30,
+    "concurrency": 100,
+    "intervalMs": 0,
+    "timeoutMs": 5000,
+    "maxRequests": 5000,
+    "maxBytes": 33554432,
+    "targetClass": "private-or-loopback"
+  },
+  "totals": {
+    "requests": 227,
+    "successful": 227,
+    "failed": 0,
+    "successRate": 1,
+    "requestsPerSecond": 36.18636617564733,
+    "bytesReceived": 59506688,
+    "bytesPerSecond": 9486038.774748893,
+    "mebibytesPerSecond": 9.046591543911832
+  },
+  "latencyMs": {
+    "min": 25.82950699999992,
+    "mean": 1521.034178497798,
+    "p50": 79.08253100000002,
+    "p95": 3527.6897415999997,
+    "p99": 3544.81805118,
+    "max": 3551.5800940000004
+  },
+  "statusCodes": {
+    "200": 227
+  },
+  "errors": {},
+  "elapsedMs": 6273.080830999999
+}

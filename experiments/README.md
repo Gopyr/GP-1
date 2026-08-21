@@ -70,6 +70,10 @@ The latest high-capacity stage reached 435.22 MiB/s at the client with 100 concu
 
 The latest combo run combines a 60-second 64 KiB sustained stage with a 30-second 2 MiB burst at 200 workers, followed by a 20-second recovery stage. The report is [`results/combo-2026-08-21/COMBO-REPORT.md`](results/combo-2026-08-21/COMBO-REPORT.md), with raw client reports and target telemetry snapshots beside it.
 
+## Local 2000-worker benchmark
+
+The local harness uses 20 Node.js processes with 100 workers each, for 2,000 total local workers. It targets the project's own loopback benchmark server and records per-process reports, target-side status counts, CPU, RSS, event-loop delay, and recovery. The latest report is [`results/local-2000-workers-2026-08-21/LOCAL-2000-WORKER-REPORT.md`](results/local-2000-workers-2026-08-21/LOCAL-2000-WORKER-REPORT.md). Client timeouts are recorded separately from target-generated HTTP status codes.
+
 ## Interpretation
 
 A lower p95 latency is not automatically evidence that a service is healthy. Compare runs made with the same endpoint, server version, hardware, duration, concurrency, interval, and warm-up conditions. Report the exact commit and configuration with any result.
