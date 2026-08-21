@@ -1,16 +1,20 @@
 import http from 'node:http';
-import { performance } from 'node:perf_hooks';
+import { performance, monitorEventLoopDelay } from 'node:perf_hooks';
 
 const port = Number(process.env.PORT || 8125);
 const maxDelayMs = 250;
 const maxPayloadBytes = 1024 * 1024;
 const publicPrefix = process.env.PUBLIC_PREFIX || '';
 const startedAt = new Date().toISOString();
+const eventLoopMonitor = monitorEventLoopDelay({ resolution: 10 });
+eventLoopMonitor.enable();
 let requestSequence = 0;
 const metrics = {
   startedAt,
   totalRequests: 0,
   totalResponseBytes: 0,
+  activeRequests: 0,
+  maxActiveRequests: 0,
   byPath: {},
   byStatus: {},
   latencyMs: { count: 0, min: null, max: null, mean: 0, p50: null, p95: null, samples: [] }
@@ -35,7 +39,18 @@ function record(path, status, latencyMs, responseBytes) {
 
 function payload() {
   const { samples, ...summary } = metrics.latencyMs;
-  return { ...metrics, latencyMs: summary, uptimeSeconds: process.uptime(), memory: process.memoryUsage(), cpu: process.cpuUsage() };
+  return {
+    ...metrics,
+    latencyMs: summary,
+    eventLoopDelayMs: {
+      mean: eventLoopMonitor.mean / 1e6,
+      p95: eventLoopMonitor.percentile(95) / 1e6,
+      max: eventLoopMonitor.max / 1e6
+    },
+    uptimeSeconds: process.uptime(),
+    memory: process.memoryUsage(),
+    cpu: process.cpuUsage()
+  };
 }
 
 const server = http.createServer((request, response) => {
@@ -50,6 +65,8 @@ const server = http.createServer((request, response) => {
     response.end(JSON.stringify({ ok: false, error: 'not found' }));
     return;
   }
+  metrics.activeRequests += 1;
+  metrics.maxActiveRequests = Math.max(metrics.maxActiveRequests, metrics.activeRequests);
 
   let delayMs = 0;
   let status = 200;
@@ -86,6 +103,7 @@ const server = http.createServer((request, response) => {
     response.writeHead(status, { 'content-type': contentType, 'cache-control': 'no-store', 'content-length': output.byteLength });
     response.end(output);
     if (path !== '/metrics') record(path, status, performance.now() - started, output.byteLength);
+    metrics.activeRequests = Math.max(metrics.activeRequests - 1, 0);
   }, delayMs);
 });
 

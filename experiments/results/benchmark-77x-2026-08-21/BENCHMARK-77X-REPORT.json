@@ -1,0 +1,268 @@
+{
+  "experiment": "benchmark-77x-2026-08-21",
+  "stages": [
+    {
+      "name": "warmup-1k",
+      "client": {
+        "requests": 1000,
+        "successful": 1000,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 718.9477132722695,
+        "bytesReceived": 79000,
+        "mebibytesPerSecond": 0.054165715549954696,
+        "latencyMs": {
+          "min": 1.5592730000000756,
+          "mean": 3.5770115760000007,
+          "p50": 3.3203340000000026,
+          "p95": 4.426393899999959,
+          "p99": 7.899904899999829,
+          "max": 38.72017499999998
+        },
+        "statusCodes": {
+          "200": 1000
+        },
+        "errors": {},
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8131/gp1-77x/health",
+          "durationSeconds": 5,
+          "concurrency": 10,
+          "intervalMs": 10,
+          "timeoutMs": 5000,
+          "maxRequests": 1000,
+          "maxBytes": 2097152,
+          "targetClass": "private-or-loopback"
+        },
+        "bandwidthMultiplierVsWarmup": 1.0
+      },
+      "target": {
+        "requests": 1000,
+        "bytes": 79000,
+        "status": {
+          "200": 1000
+        },
+        "cpuUserMs": 468.417,
+        "cpuSystemMs": 17.999,
+        "rssDeltaMiB": 8.9609375,
+        "targetMeanLatencyMs": 1.319040844000052,
+        "targetP95LatencyMs": 1.906543999999485,
+        "eventLoopP95Ms": 10.264575,
+        "eventLoopMaxMs": 10.985471,
+        "maxActiveRequestsObserved": 6
+      }
+    },
+    {
+      "name": "sustained-64k",
+      "client": {
+        "requests": 2097,
+        "successful": 2097,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 1321.8389562740438,
+        "bytesReceived": 137428992,
+        "mebibytesPerSecond": 82.61493476712774,
+        "latencyMs": {
+          "min": 11.407256000000189,
+          "mean": 36.917829561754864,
+          "p50": 33.226698,
+          "p95": 63.48950339999997,
+          "p99": 78.84866164000007,
+          "max": 96.85701000000017
+        },
+        "statusCodes": {
+          "200": 2097
+        },
+        "errors": {},
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8131/gp1-77x/payload?bytes=65536",
+          "durationSeconds": 30,
+          "concurrency": 50,
+          "intervalMs": 0,
+          "timeoutMs": 5000,
+          "maxRequests": 5000,
+          "maxBytes": 134217728,
+          "targetClass": "private-or-loopback"
+        },
+        "bandwidthMultiplierVsWarmup": 1525.2255772553315
+      },
+      "target": {
+        "requests": 2097,
+        "bytes": 137428992,
+        "status": {
+          "200": 2097
+        },
+        "cpuUserMs": 1616.929,
+        "cpuSystemMs": 106.127,
+        "rssDeltaMiB": 46.90234375,
+        "targetMeanLatencyMs": 11.197918746851801,
+        "targetP95LatencyMs": 32.586701000000176,
+        "eventLoopP95Ms": 10.969087,
+        "eventLoopMaxMs": 65.470463,
+        "maxActiveRequestsObserved": 50
+      }
+    },
+    {
+      "name": "high-capacity-1m",
+      "client": {
+        "requests": 611,
+        "successful": 611,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 511.0793077211121,
+        "bytesReceived": 640679936,
+        "mebibytesPerSecond": 511.0793077211121,
+        "latencyMs": {
+          "min": 62.596281000000005,
+          "mean": 180.9238742831424,
+          "p50": 171.20674799999995,
+          "p95": 280.9892655,
+          "p99": 319.3445958,
+          "max": 326.624003
+        },
+        "statusCodes": {
+          "200": 611
+        },
+        "errors": {},
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8131/gp1-77x/payload?bytes=1048576",
+          "durationSeconds": 60,
+          "concurrency": 100,
+          "intervalMs": 0,
+          "timeoutMs": 5000,
+          "maxRequests": 5000,
+          "maxBytes": 536870912,
+          "targetClass": "private-or-loopback"
+        },
+        "bandwidthMultiplierVsWarmup": 9435.475974646099
+      },
+      "target": {
+        "requests": 611,
+        "bytes": 640679936,
+        "status": {
+          "200": 611
+        },
+        "cpuUserMs": 837.076,
+        "cpuSystemMs": 318.278,
+        "rssDeltaMiB": 65.046875,
+        "targetMeanLatencyMs": 15.892371009169368,
+        "targetP95LatencyMs": 46.74079200000051,
+        "eventLoopP95Ms": 13.697023,
+        "eventLoopMaxMs": 162.660351,
+        "maxActiveRequestsObserved": 68
+      }
+    },
+    {
+      "name": "controlled-fault-64k",
+      "client": {
+        "requests": 2000,
+        "successful": 1800,
+        "failed": 200,
+        "successRate": 0.9,
+        "requestsPerSecond": 752.6139315746979,
+        "bytesReceived": 150000,
+        "mebibytesPerSecond": 0.05383114325342401,
+        "latencyMs": {
+          "min": 7.245747000000051,
+          "mean": 54.93005474599996,
+          "p50": 52.681425999999874,
+          "p95": 82.42974405000034,
+          "p99": 98.27465983000003,
+          "max": 102.17241100000001
+        },
+        "statusCodes": {
+          "200": 1800,
+          "503": 200
+        },
+        "errors": {},
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8131/gp1-77x/fault?rate=0.10",
+          "durationSeconds": 20,
+          "concurrency": 50,
+          "intervalMs": 10,
+          "timeoutMs": 5000,
+          "maxRequests": 2000,
+          "maxBytes": 134217728,
+          "targetClass": "private-or-loopback"
+        },
+        "bandwidthMultiplierVsWarmup": 0.9938231722200341
+      },
+      "target": {
+        "requests": 2000,
+        "bytes": 150000,
+        "status": {
+          "503": 200,
+          "200": 1800
+        },
+        "cpuUserMs": 2653.707,
+        "cpuSystemMs": 60.574,
+        "rssDeltaMiB": 2.3671875,
+        "targetMeanLatencyMs": 22.603868381044148,
+        "targetP95LatencyMs": 54.63081199999942,
+        "eventLoopP95Ms": 31.342591,
+        "eventLoopMaxMs": 162.660351,
+        "maxActiveRequestsObserved": 68
+      }
+    },
+    {
+      "name": "recovery-1k",
+      "client": {
+        "requests": 2000,
+        "successful": 2000,
+        "failed": 0,
+        "successRate": 1,
+        "requestsPerSecond": 497.0592496042147,
+        "bytesReceived": 158000,
+        "mebibytesPerSecond": 0.03744857856629654,
+        "latencyMs": {
+          "min": 2.733186999999816,
+          "mean": 9.9856955225,
+          "p50": 9.750302499999805,
+          "p95": 13.65035360000004,
+          "p99": 17.58916737999975,
+          "max": 27.48684300000002
+        },
+        "statusCodes": {
+          "200": 2000
+        },
+        "errors": {},
+        "config": {
+          "mode": 1,
+          "profile": "lab-experiment",
+          "url": "http://127.0.0.1:8131/gp1-77x/health",
+          "durationSeconds": 15,
+          "concurrency": 10,
+          "intervalMs": 10,
+          "timeoutMs": 5000,
+          "maxRequests": 2000,
+          "maxBytes": 4194304,
+          "targetClass": "private-or-loopback"
+        },
+        "bandwidthMultiplierVsWarmup": 0.6913705133602331
+      },
+      "target": {
+        "requests": 2000,
+        "bytes": 158000,
+        "status": {
+          "503": 0,
+          "200": 2000
+        },
+        "cpuUserMs": 3850.676,
+        "cpuSystemMs": 44.212,
+        "rssDeltaMiB": 0.0,
+        "targetMeanLatencyMs": 18.09039313998443,
+        "targetP95LatencyMs": 51.794832999999926,
+        "eventLoopP95Ms": 27.213823,
+        "eventLoopMaxMs": 162.660351,
+        "maxActiveRequestsObserved": 68
+      }
+    }
+  ]
+}

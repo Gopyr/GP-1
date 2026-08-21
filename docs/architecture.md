@@ -7,7 +7,7 @@ flowchart LR
     A[settings.json\nmode 0 or 1] --> B[CLI argument parser]
     B --> C[Target and bound validation]
     C --> D[Bounded worker pool]
-    D -->     E[GET request observation\nkeep-alive pool]
+    D --> E[GET request observation\nkeep-alive pool]
     E --> F[Sample collection\nstatus latency errors bytes]
     F --> G[Metrics summary\np50 p95 p99 req/s MiB/s]
 

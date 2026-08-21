@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-21T15:17:36.780Z",
+  "config": {
+    "mode": 1,
+    "profile": "lab-experiment",
+    "url": "http://127.0.0.1:8131/gp1-77x/health",
+    "durationSeconds": 15,
+    "concurrency": 10,
+    "intervalMs": 10,
+    "timeoutMs": 5000,
+    "maxRequests": 2000,
+    "maxBytes": 4194304,
+    "targetClass": "private-or-loopback"
+  },
+  "totals": {
+    "requests": 2000,
+    "successful": 2000,
+    "failed": 0,
+    "successRate": 1,
+    "requestsPerSecond": 497.0592496042147,
+    "bytesReceived": 158000,
+    "bytesPerSecond": 39267.68071873296,
+    "mebibytesPerSecond": 0.03744857856629654
+  },
+  "latencyMs": {
+    "min": 2.733186999999816,
+    "mean": 9.9856955225,
+    "p50": 9.750302499999805,
+    "p95": 13.65035360000004,
+    "p99": 17.58916737999975,
+    "max": 27.48684300000002
+  },
+  "statusCodes": {
+    "200": 2000
+  },
+  "errors": {},
+  "elapsedMs": 4023.66519
+}
