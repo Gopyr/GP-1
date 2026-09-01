@@ -68,16 +68,33 @@ node src/cli.mjs \
 | --- | --- | --- |
 | `--url` | HTTP or HTTPS URL to test | Required |
 | `--duration` | Maximum run duration in seconds | `10`, maximum `600` |
-| `--concurrency` | Number of parallel workers | `5`, maximum `100` |
+| `--concurrency` | Number of parallel workers | `5`, maximum `400` |
 | `--interval` | Delay per worker between requests in milliseconds | `50`, maximum `60000` |
 | `--timeout` | Per-request timeout | `5000`, range `100–60000` |
 | `--max-requests` | Hard cap across the whole run | `1000`, maximum `100000` |
 | `--max-bytes` | Hard cap on response bytes counted | `536870912`, maximum `2147483648` |
 | `--output` | Write the JSON report to a file | Optional |
+| `--html` | Also write a standalone HTML report | Optional |
 | `--mode <0|1>` | Override the `settings.json` mode for one run | Uses `settings.json` |
 | `--lab-confirm` | Required by mode `1` | Off by default |
 | `--allow-public` | Opt in to an owned/authorized public test server | Off by default |
 | `--public-test-confirm` | Confirms the public target is an approved test server | Required with `--allow-public` |
+
+Additional commands:
+
+```bash
+# Compare two reports (human table + optional JSON/HTML diff)
+node src/cli.mjs compare experiments/results/localhost-baseline.json experiments/results/saturation-2026-08-22/SATURATION-SUMMARY.json --output /tmp/diff.json --html /tmp/diff.html
+
+# Generate HTML from an existing JSON report
+node src/cli.mjs html experiments/results/localhost-baseline.json --output /tmp/report.html
+node src/cli.mjs html experiments/results/localhost-baseline.json --stdout > /tmp/report.html
+
+# Live run also writes HTML alongside JSON
+node src/cli.mjs --url http://127.0.0.1:8123/health --duration 5 --output /tmp/run.json --html /tmp/run.html
+```
+
+Live progress shows a per-second sparkline: throughput (`r/s ▁▂▃▆█`) and latency (`▁▂▅▇`) updated every second. On TTY it rewrites the current line; on non-TTY it logs to stderr so stdout stays clean JSON.
 
 GP-1 uses `GET` only, follows no redirects, sends a descriptive user agent, and never persists response bodies. Status codes from the 2xx and 3xx ranges count as successful observations; 4xx, 5xx, timeout, and network errors are reported separately.
 
@@ -98,8 +115,10 @@ The request path, mode semantics, report contract, and local demo server are des
 ## Project layout
 
 ```text
-src/cli.mjs                 CLI, guardrails, request runner, JSON reporting
+src/cli.mjs                 CLI, guardrails, request runner, JSON reporting, sparklines, compare/html
 src/metrics.mjs             Percentile and summary calculations
+src/compare.mjs             JSON report comparison (delta + %)
+src/html-report.mjs         Standalone HTML report generator (no deps)
 scripts/demo-server.mjs     Local-only demo endpoint for reproducible runs
 scripts/public-test-server.mjs Temporary public test server with observability
 scripts/run-public-experiment.sh Bounded public-network experiment runner
