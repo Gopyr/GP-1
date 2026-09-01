@@ -1,7 +1,7 @@
 /**
  * GP-1 HTML report generator. Zero dependencies, standalone HTML.
  * Input: report from src/metrics.mjs summarize() (schemaVersion 2).
- * Output: string of HTML.
+ * Output: string of HTML with CSS fade-in and a data-driven SVG sparkline.
  */
 
 function esc(s) {
@@ -18,6 +18,47 @@ function barWidth(value, max) {
   return Math.min(100, Math.max(2, (value / max) * 100));
 }
 
+/**
+ * Data-driven sparkline from the report's latency percentiles.
+ * Points are placed on a log-ish curve (min, mean, p50, p95, p99, max),
+ * so the shape always reflects real numbers, never a fake pattern.
+ */
+function sparkline(l, W = 560, H = 96) {
+  const keys = ['min', 'mean', 'p50', 'p95', 'p99', 'max'];
+  const vals = keys.map(k => Number(l?.[k]));
+  if (!vals.some(Number.isFinite)) return '';
+  const minV = Math.min(...vals.filter(Number.isFinite));
+  const maxV = Math.max(...vals.filter(Number.isFinite), minV + 1);
+  const span = maxV - minV || 1;
+  const pad = 8;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (keys.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - minV) / span) * (H - pad * 2);
+    return { x: x.toFixed(1), y: y.toFixed(1), v };
+  });
+  const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const area = `${path} L ${pts[pts.length - 1].x} ${H - pad} L ${pts[0].x} ${H - pad} Z`;
+  const dots = pts.filter(p => Number.isFinite(p.v)).map(p =>
+    `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#58a6ff" opacity="0.9"><title>${keys[pts.indexOf(p)]}: ${p.v} ms</title></circle>`
+  ).join('');
+  const labels = keys.map((k, i) =>
+    `<text x="${pts[i].x}" y="${H - 2}" text-anchor="middle" font-size="9" fill="#8b949e" font-family="ui-monospace,monospace">${k}</text>`
+  ).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Latency percentiles sparkline" style="display:block;margin:10px 0 2px">
+<defs><linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#58a6ff" stop-opacity="0.28"/><stop offset="100%" stop-color="#58a6ff" stop-opacity="0"/>
+</linearGradient></defs>
+<path d="${area}" fill="url(#sparkfill)"/>
+<path d="${path}" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+  stroke-dasharray="2000" stroke-dashoffset="2000">
+  <animate attributeName="stroke-dashoffset" from="2000" to="0" dur="1.6s" begin="0.4s" fill="freeze"/>
+</path>
+${dots}
+<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#212d3d" stroke-width="1"/>
+${labels}
+</svg>`;
+}
+
 export function generateHtml(report) {
   const cfg = report.config ?? {};
   const t = report.totals ?? {};
@@ -29,8 +70,8 @@ export function generateHtml(report) {
   const latencyMax = Math.max(l.p99 ?? 0, l.p95 ?? 0, l.max ?? 0, 1);
 
   const statusRows = Object.entries(sc).sort((a, b) => Number(a[0]) - Number(b[0]))
-    .map(([code, count]) => `<tr><td>${esc(code)}</td><td class="num">${esc(count)}</td><td class="bar-cell"><div class="bar" style="width:${barWidth(count, t.requests)}%"></div></td></tr>`).join('\n') || '<tr><td colspan="3" class="muted">No status codes</td></tr>';
-  const errorRows = Object.entries(er).map(([name, count]) => `<tr><td>${esc(name)}</td><td class="num">${esc(count)}</td></tr>`).join('\n') || '<tr><td colspan="2" class="muted">No errors</td></tr>';
+    .map(([code, count]) => `<tr style="animation:rise .5s ease both"><td>${esc(code)}</td><td class="num">${esc(count)}</td><td class="bar-cell"><div class="bar" style="width:${barWidth(count, t.requests)}%"></div></td></tr>`).join('\n') || '<tr><td colspan="3" class="muted">No status codes</td></tr>';
+  const errorRows = Object.entries(er).map(([name, count]) => `<tr style="animation:rise .5s ease both"><td>${esc(name)}</td><td class="num">${esc(count)}</td></tr>`).join('\n') || '<tr><td colspan="2" class="muted">No errors</td></tr>';
 
   return `<!doctype html>
 <html lang="en">
@@ -38,21 +79,43 @@ export function generateHtml(report) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
 <style>
-*{box-sizing:border-box}body{font-family:ui-sans,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b0f14;color:#e6edf3;line-height:1.5}
+*{box-sizing:border-box}
+body{font-family:ui-sans,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b0f14;color:#e6edf3;line-height:1.5}
 .wrap{max-width:960px;margin:0 auto;padding:32px 20px}
-header{border-bottom:1px solid #1f2a36;padding-bottom:16px;margin-bottom:24px}
-h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 12px;color:#c9d1d9;border-bottom:1px solid #1f2a36;padding-bottom:6px}
-.muted{color:#8b949e;font-size:13px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all}
+header{border-bottom:1px solid #1f2a36;padding-bottom:16px;margin-bottom:24px;animation:rise .6s ease both}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:16px;margin:28px 0 12px;color:#c9d1d9;border-bottom:1px solid #1f2a36;padding-bottom:6px}
+.muted{color:#8b949e;font-size:13px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-.card{background:#111824;border:1px solid #1f2a36;border-radius:10px;padding:14px}
-.card .k{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.04em}.card .v{font-size:20px;font-weight:650;margin-top:4px}.card .s{font-size:12px;color:#8b949e;margin-top:2px}
-table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:#8b949e;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1f2a36;padding:8px 8px}td{border-bottom:1px solid #16202e;padding:8px 8px}td.num{text-align:right;font-variant-numeric:tabular-nums}
-.bar{height:8px;background:#2ea043;border-radius:999px}.bar-cell{width:40%}
-.lat-row{display:flex;align-items:center;gap:10px;margin:6px 0}.lat-label{width:48px;font-size:13px;color:#8b949e}.lat-bar{flex:1;height:10px;background:#16202e;border-radius:999px;overflow:hidden}.lat-fill{height:100%;background:#58a6ff}.lat-val{width:90px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
-.cfg{display:grid;grid-template-columns:160px 1fr;gap:6px 12px;font-size:13px}.cfg dt{color:#8b949e}.cfg dd{margin:0;font-family:ui-monospace,monospace;word-break:break-all}
+.card{background:#111824;border:1px solid #1f2a36;border-radius:10px;padding:14px;animation:rise .5s ease both}
+.card:nth-child(1){animation-delay:.05s}
+.card:nth-child(2){animation-delay:.12s}
+.card:nth-child(3){animation-delay:.19s}
+.card:nth-child(4){animation-delay:.26s}
+.card .k{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.04em}
+.card .v{font-size:20px;font-weight:650;margin-top:4px}
+.card .s{font-size:12px;color:#8b949e;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:#8b949e;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1f2a36;padding:8px 8px}
+td{border-bottom:1px solid #16202e;padding:8px 8px}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:8px;background:#2ea043;border-radius:999px;animation:grow .8s ease both}
+.bar-cell{width:40%}
+.lat-row{display:flex;align-items:center;gap:10px;margin:6px 0;animation:rise .5s ease both}
+.lat-label{width:48px;font-size:13px;color:#8b949e}
+.lat-bar{flex:1;height:10px;background:#16202e;border-radius:999px;overflow:hidden}
+.lat-fill{height:100%;background:#58a6ff;animation:grow 1s ease both}
+.lat-val{width:90px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.cfg{display:grid;grid-template-columns:160px 1fr;gap:6px 12px;font-size:13px}
+.cfg dt{color:#8b949e}
+.cfg dd{margin:0;font-family:ui-monospace,monospace;word-break:break-all}
 footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b949e;font-size:12px}
 .badge{display:inline-block;font-size:11px;border:1px solid #2a3a4d;border-radius:999px;padding:2px 8px;color:#8b949e}
-@media print{body{background:#fff;color:#111}.card{background:#f6f8fa;border-color:#d0d7de}header{border-color:#d0d7de}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes grow{from{width:0}to{width:var(--w,100%)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+@media print{body{background:#fff;color:#111}.card{background:#f6f8fa;border-color:#d0d7de}header{border-color:#d0d7de}*{animation:none!important}}
 </style>
 <div class="wrap">
 <header>
@@ -69,13 +132,15 @@ footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b94
   <div class="card"><div class="k">p95 latency</div><div class="v">${fmtNum(l.p95)} <span style="font-size:13px;font-weight:500">ms</span></div><div class="s">p50 ${fmtNum(l.p50)} · p99 ${fmtNum(l.p99)} · max ${fmtNum(l.max)}</div></div>
 </div>
 
+${sparkline(l)}
+
 <h2>Latency</h2>
-<div class="lat-row"><span class="lat-label">min</span><div class="lat-bar"><div class="lat-fill" style="width:${barWidth(l.min, latencyMax)}%"></div></div><span class="lat-val">${fmtNum(l.min)} ms</span></div>
-<div class="lat-row"><span class="lat-label">mean</span><div class="lat-bar"><div class="lat-fill" style="width:${barWidth(l.mean, latencyMax)}%"></div></div><span class="lat-val">${fmtNum(l.mean)} ms</span></div>
-<div class="lat-row"><span class="lat-label">p50</span><div class="lat-bar"><div class="lat-fill" style="width:${barWidth(l.p50, latencyMax)}%"></div></div><span class="lat-val">${fmtNum(l.p50)} ms</span></div>
-<div class="lat-row"><span class="lat-label">p95</span><div class="lat-bar"><div class="lat-fill" style="width:${barWidth(l.p95, latencyMax)}%;background:#d29922"></div></div><span class="lat-val">${fmtNum(l.p95)} ms</span></div>
-<div class="lat-row"><span class="lat-label">p99</span><div class="lat-bar"><div class="lat-fill" style="width:${barWidth(l.p99, latencyMax)}%;background:#f85149"></div></div><span class="lat-val">${fmtNum(l.p99)} ms</span></div>
-<div class="lat-row"><span class="lat-label">max</span><div class="lat-bar"><div class="lat-fill" style="width:${barWidth(l.max, latencyMax)}%;background:#f85149"></div></div><span class="lat-val">${fmtNum(l.max)} ms</span></div>
+<div class="lat-row"><span class="lat-label">min</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.min, latencyMax)}%;width:${barWidth(l.min, latencyMax)}%"></div></div><span class="lat-val">${fmtNum(l.min)} ms</span></div>
+<div class="lat-row"><span class="lat-label">mean</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.mean, latencyMax)}%;width:${barWidth(l.mean, latencyMax)}%"></div></div><span class="lat-val">${fmtNum(l.mean)} ms</span></div>
+<div class="lat-row"><span class="lat-label">p50</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.p50, latencyMax)}%;width:${barWidth(l.p50, latencyMax)}%"></div></div><span class="lat-val">${fmtNum(l.p50)} ms</span></div>
+<div class="lat-row"><span class="lat-label">p95</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.p95, latencyMax)}%;width:${barWidth(l.p95, latencyMax)}%;background:#d29922"></div></div><span class="lat-val">${fmtNum(l.p95)} ms</span></div>
+<div class="lat-row"><span class="lat-label">p99</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.p99, latencyMax)}%;width:${barWidth(l.p99, latencyMax)}%;background:#f85149"></div></div><span class="lat-val">${fmtNum(l.p99)} ms</span></div>
+<div class="lat-row"><span class="lat-label">max</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.max, latencyMax)}%;width:${barWidth(l.max, latencyMax)}%;background:#f85149"></div></div><span class="lat-val">${fmtNum(l.max)} ms</span></div>
 
 <h2>Configuration</h2>
 <dl class="cfg">
@@ -108,16 +173,16 @@ export function generateCompareHtml(cmp) {
   const a = cmp.baseline, b = cmp.candidate;
   const rows = [];
   for (const [k, v] of Object.entries(cmp.delta.totals)) {
-    rows.push(`<tr><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? 'n/a')}</td><td class="num">${esc(v.candidate ?? 'n/a')}</td><td class="num ${v.delta > 0 ? 'up' : v.delta < 0 ? 'down' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : 'n/a')}</td><td class="num">${v.deltaPercent === null ? 'n/a' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
+    rows.push(`<tr style="animation:rise .5s ease both"><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? 'n/a')}</td><td class="num">${esc(v.candidate ?? 'n/a')}</td><td class="num ${v.delta > 0 ? 'up' : v.delta < 0 ? 'down' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : 'n/a')}</td><td class="num">${v.deltaPercent === null ? 'n/a' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
   }
   const latRows = [];
   for (const [k, v] of Object.entries(cmp.delta.latencyMs)) {
-    latRows.push(`<tr><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? 'n/a')}</td><td class="num">${esc(v.candidate ?? 'n/a')}</td><td class="num ${v.delta > 0 ? 'bad' : v.delta < 0 ? 'good' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : 'n/a')}</td><td class="num">${v.deltaPercent === null ? 'n/a' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
+    latRows.push(`<tr style="animation:rise .5s ease both"><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? 'n/a')}</td><td class="num">${esc(v.candidate ?? 'n/a')}</td><td class="num ${v.delta > 0 ? 'bad' : v.delta < 0 ? 'good' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : 'n/a')}</td><td class="num">${v.deltaPercent === null ? 'n/a' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
   }
-  const summary = (cmp.summary ?? []).map(s => `<li>${esc(s)}</li>`).join('') || '<li class="muted">No summary</li>';
+  const summary = (cmp.summary ?? []).map(s => `<li style="animation:rise .5s ease both">${esc(s)}</li>`).join('') || '<li class="muted">No summary</li>';
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP-1 Compare. ${esc(a.file ?? 'baseline')} vs ${esc(b.file ?? 'candidate')}</title>
-<style>*{box-sizing:border-box}body{font-family:ui-sans,system-ui,sans-serif;margin:0;background:#0b0f14;color:#e6edf3;line-height:1.5}.wrap{max-width:1000px;margin:0 auto;padding:32px 20px}h1{font-size:22px;margin:0}h2{font-size:16px;margin:28px 0 12px;color:#c9d1d9;border-bottom:1px solid #1f2a36;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1f2a36;padding:8px}td{border-bottom:1px solid #16202e;padding:8px}td.num{text-align:right;font-variant-numeric:tabular-nums}.up{color:#2ea043}.down{color:#f85149}.good{color:#2ea043}.bad{color:#f85149}.muted{color:#8b949e}.mono{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}.badge{display:inline-block;font-size:11px;border:1px solid #2a3a4d;border-radius:999px;padding:2px 8px;color:#8b949e}ul{margin:8px 0;padding-left:20px}footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b949e;font-size:12px}</style>
+<style>*{box-sizing:border-box}body{font-family:ui-sans,system-ui,sans-serif;margin:0;background:#0b0f14;color:#e6edf3;line-height:1.5}.wrap{max-width:1000px;margin:0 auto;padding:32px 20px}h1{font-size:22px;margin:0}h2{font-size:16px;margin:28px 0 12px;color:#c9d1d9;border-bottom:1px solid #1f2a36;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1f2a36;padding:8px}td{border-bottom:1px solid #16202e;padding:8px}td.num{text-align:right;font-variant-numeric:tabular-nums}.up{color:#2ea043}.down{color:#f85149}.good{color:#2ea043}.bad{color:#f85149}.muted{color:#8b949e}.mono{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}.badge{display:inline-block;font-size:11px;border:1px solid #2a3a4d;border-radius:999px;padding:2px 8px;color:#8b949e}ul{margin:8px 0;padding-left:20px}footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b949e;font-size:12px}header{animation:rise .6s ease both}@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
 <div class="wrap">
 <div class="badge">GP-1 compare</div>
 <h1>Compare</h1>
