@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/Gopyr/GP-1/actions/workflows/ci.yml/badge.svg)](https://github.com/Gopyr/GP-1/actions/workflows/ci.yml) [![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-GP-1 is the **flagship project** in the Gopyr profile and the serious successor to the old one-file stress-test experiment. It is designed to make ambitious performance and resilience experiments easy to scope, easy to repeat, and difficult to run accidentally at an uncontrolled scale.
+GP-1 is the **main project** in the Gopyr profile and the serious successor to the old one-file stress-test experiment. It is designed to make ambitious performance and resilience experiments easy to scope, easy to repeat, and difficult to run accidentally at an uncontrolled scale.
 
 ## What makes GP-1 different
 

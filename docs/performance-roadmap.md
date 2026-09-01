@@ -21,6 +21,6 @@ The main bottleneck signal is tail latency and stage duration rather than target
 
 A large worker count or a large multiplier by itself is not a useful capacity result. Combining every dimension at once can make the client, operating system, or benchmark proxy the bottleneck before the target is meaningfully exercised. GP-1 should therefore report both **offered load** and **accepted/observed load**, and should mark any client-side timeout or transport failure instead of treating it as a target failure.
 
-## Suggested flagship positioning
+## Suggested positioning
 
 GP-1 should be presented as a **reproducible performance and resilience laboratory**. Its strongest differentiator is not an extreme number of workers; it is the ability to explain why a run saturates, reconcile client and target telemetry, quantify tail latency, and document recovery with raw evidence.
