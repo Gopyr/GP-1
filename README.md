@@ -98,6 +98,14 @@ Live progress shows a per-second sparkline: throughput (`r/s ▁▂▃▆█`) a
 
 GP-1 uses `GET` only, follows no redirects, sends a descriptive user agent, and never persists response bodies. Status codes from the 2xx and 3xx ranges count as successful observations; 4xx, 5xx, timeout, and network errors are reported separately.
 
+## HTML report preview
+
+`gp-1 html <report.json>` (or `--html out.html` during a run) writes a standalone, dependency-free HTML report. Sample output from the saturation run:
+
+![GP-1 HTML report](screenshots/html-report.png)
+
+The report is self-contained (inline CSS, no network fetches) and prints cleanly.
+
 ## Report fields
 
 The JSON report is designed for comparison between controlled runs. `p50` describes the median observed latency, while `p95` and `p99` show the slower tail. `requestsPerSecond` is the number of completed observations divided by elapsed wall-clock time. `bytesPerSecond` and `mebibytesPerSecond` are calculated from response bytes actually consumed by the client; they are not claims about maximum server capacity.
