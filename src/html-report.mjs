@@ -1,5 +1,5 @@
 /**
- * GP-1 HTML report generator — zero dependencies, standalone HTML.
+ * GP-1 HTML report generator. Zero dependencies, standalone HTML.
  * Input: report from src/metrics.mjs summarize() (schemaVersion 2).
  * Output: string of HTML.
  */
@@ -9,7 +9,7 @@ function esc(s) {
 }
 
 function fmtNum(v, digits = 2) {
-  if (v === null || v === undefined || !Number.isFinite(v)) return '—';
+  if (v === null || v === undefined || !Number.isFinite(v)) return 'n/a';
   return Number.isInteger(v) && digits === 0 ? String(v) : v.toFixed(digits);
 }
 
@@ -25,7 +25,7 @@ export function generateHtml(report) {
   const sc = report.statusCodes ?? {};
   const er = report.errors ?? {};
   const elapsed = report.elapsedMs ?? 0;
-  const title = `GP-1 Report — ${esc(cfg.url ?? 'unknown target')} — ${esc(report.generatedAt ?? '')}`;
+  const title = `GP-1 Report. ${esc(cfg.url ?? 'unknown target')}. ${esc(report.generatedAt ?? '')}`;
   const latencyMax = Math.max(l.p99 ?? 0, l.p95 ?? 0, l.max ?? 0, 1);
 
   const statusRows = Object.entries(sc).sort((a, b) => Number(a[0]) - Number(b[0]))
@@ -58,12 +58,12 @@ footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b94
 <header>
   <div class="badge">GP-1 ${esc(report.schemaVersion ?? '?')} · ${esc(cfg.profile ?? 'unknown')} · mode ${esc(cfg.mode ?? '?')}</div>
   <h1>GP-1 Load Report</h1>
-  <div class="mono">${esc(cfg.url ?? '—')}</div>
-  <div class="muted">Generated ${esc(report.generatedAt ?? '—')} · elapsed ${fmtNum(elapsed, 0)} ms · ${esc(cfg.targetClass ?? '')}</div>
+  <div class="mono">${esc(cfg.url ?? 'n/a')}</div>
+  <div class="muted">Generated ${esc(report.generatedAt ?? 'n/a')} · elapsed ${fmtNum(elapsed, 0)} ms · ${esc(cfg.targetClass ?? '')}</div>
 </header>
 
 <div class="grid">
-  <div class="card"><div class="k">Requests</div><div class="v">${fmtNum(t.requests, 0)}</div><div class="s">${fmtNum(t.successful, 0)} ok · ${fmtNum(t.failed, 0)} failed · ${(Number.isFinite(t.successRate) ? (t.successRate * 100).toFixed(1) : '—')}% success</div></div>
+  <div class="card"><div class="k">Requests</div><div class="v">${fmtNum(t.requests, 0)}</div><div class="s">${fmtNum(t.successful, 0)} ok · ${fmtNum(t.failed, 0)} failed · ${(Number.isFinite(t.successRate) ? (t.successRate * 100).toFixed(1) : 'n/a')}% success</div></div>
   <div class="card"><div class="k">Throughput</div><div class="v">${fmtNum(t.requestsPerSecond)} <span style="font-size:13px;font-weight:500">req/s</span></div><div class="s">${fmtNum(t.mebibytesPerSecond)} MiB/s · ${fmtNum(t.bytesPerSecond, 0)} B/s</div></div>
   <div class="card"><div class="k">Bytes received</div><div class="v">${fmtNum(t.bytesReceived, 0)}</div><div class="s">total response bytes counted</div></div>
   <div class="card"><div class="k">p95 latency</div><div class="v">${fmtNum(l.p95)} <span style="font-size:13px;font-weight:500">ms</span></div><div class="s">p50 ${fmtNum(l.p50)} · p99 ${fmtNum(l.p99)} · max ${fmtNum(l.max)}</div></div>
@@ -79,15 +79,15 @@ footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b94
 
 <h2>Configuration</h2>
 <dl class="cfg">
-  <dt>URL</dt><dd>${esc(cfg.url ?? '—')}</dd>
-  <dt>Mode / profile</dt><dd>${esc(cfg.mode ?? '—')} / ${esc(cfg.profile ?? '—')}</dd>
-  <dt>Duration</dt><dd>${esc(cfg.durationSeconds ?? '—')} s</dd>
-  <dt>Concurrency</dt><dd>${esc(cfg.concurrency ?? '—')}</dd>
-  <dt>Interval</dt><dd>${esc(cfg.intervalMs ?? '—')} ms</dd>
-  <dt>Timeout</dt><dd>${esc(cfg.timeoutMs ?? '—')} ms</dd>
-  <dt>Max requests</dt><dd>${esc(cfg.maxRequests ?? '—')}</dd>
-  <dt>Max bytes</dt><dd>${esc(cfg.maxBytes ?? '—')}</dd>
-  <dt>Worker</dt><dd>${esc(cfg.workerId ?? '—')} · ${esc(cfg.method ?? '—')}</dd>
+  <dt>URL</dt><dd>${esc(cfg.url ?? 'n/a')}</dd>
+  <dt>Mode / profile</dt><dd>${esc(cfg.mode ?? 'n/a')} / ${esc(cfg.profile ?? 'n/a')}</dd>
+  <dt>Duration</dt><dd>${esc(cfg.durationSeconds ?? 'n/a')} s</dd>
+  <dt>Concurrency</dt><dd>${esc(cfg.concurrency ?? 'n/a')}</dd>
+  <dt>Interval</dt><dd>${esc(cfg.intervalMs ?? 'n/a')} ms</dd>
+  <dt>Timeout</dt><dd>${esc(cfg.timeoutMs ?? 'n/a')} ms</dd>
+  <dt>Max requests</dt><dd>${esc(cfg.maxRequests ?? 'n/a')}</dd>
+  <dt>Max bytes</dt><dd>${esc(cfg.maxBytes ?? 'n/a')}</dd>
+  <dt>Worker</dt><dd>${esc(cfg.workerId ?? 'n/a')} · ${esc(cfg.method ?? 'n/a')}</dd>
 </dl>
 
 <h2>Status codes</h2>
@@ -108,27 +108,27 @@ export function generateCompareHtml(cmp) {
   const a = cmp.baseline, b = cmp.candidate;
   const rows = [];
   for (const [k, v] of Object.entries(cmp.delta.totals)) {
-    rows.push(`<tr><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? '—')}</td><td class="num">${esc(v.candidate ?? '—')}</td><td class="num ${v.delta > 0 ? 'up' : v.delta < 0 ? 'down' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : '—')}</td><td class="num">${v.deltaPercent === null ? '—' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
+    rows.push(`<tr><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? 'n/a')}</td><td class="num">${esc(v.candidate ?? 'n/a')}</td><td class="num ${v.delta > 0 ? 'up' : v.delta < 0 ? 'down' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : 'n/a')}</td><td class="num">${v.deltaPercent === null ? 'n/a' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
   }
   const latRows = [];
   for (const [k, v] of Object.entries(cmp.delta.latencyMs)) {
-    latRows.push(`<tr><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? '—')}</td><td class="num">${esc(v.candidate ?? '—')}</td><td class="num ${v.delta > 0 ? 'bad' : v.delta < 0 ? 'good' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : '—')}</td><td class="num">${v.deltaPercent === null ? '—' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
+    latRows.push(`<tr><td>${esc(k)}</td><td class="num">${esc(v.baseline ?? 'n/a')}</td><td class="num">${esc(v.candidate ?? 'n/a')}</td><td class="num ${v.delta > 0 ? 'bad' : v.delta < 0 ? 'good' : ''}">${v.delta >= 0 ? '+' : ''}${esc(Number.isFinite(v.delta) ? v.delta.toFixed(2) : 'n/a')}</td><td class="num">${v.deltaPercent === null ? 'n/a' : (v.deltaPercent >= 0 ? '+' : '') + v.deltaPercent.toFixed(1) + '%'}</td></tr>`);
   }
   const summary = (cmp.summary ?? []).map(s => `<li>${esc(s)}</li>`).join('') || '<li class="muted">No summary</li>';
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GP-1 Compare — ${esc(a.file ?? 'baseline')} vs ${esc(b.file ?? 'candidate')}</title>
+<title>GP-1 Compare. ${esc(a.file ?? 'baseline')} vs ${esc(b.file ?? 'candidate')}</title>
 <style>*{box-sizing:border-box}body{font-family:ui-sans,system-ui,sans-serif;margin:0;background:#0b0f14;color:#e6edf3;line-height:1.5}.wrap{max-width:1000px;margin:0 auto;padding:32px 20px}h1{font-size:22px;margin:0}h2{font-size:16px;margin:28px 0 12px;color:#c9d1d9;border-bottom:1px solid #1f2a36;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1f2a36;padding:8px}td{border-bottom:1px solid #16202e;padding:8px}td.num{text-align:right;font-variant-numeric:tabular-nums}.up{color:#2ea043}.down{color:#f85149}.good{color:#2ea043}.bad{color:#f85149}.muted{color:#8b949e}.mono{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}.badge{display:inline-block;font-size:11px;border:1px solid #2a3a4d;border-radius:999px;padding:2px 8px;color:#8b949e}ul{margin:8px 0;padding-left:20px}footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b949e;font-size:12px}</style>
 <div class="wrap">
 <div class="badge">GP-1 compare</div>
 <h1>Compare</h1>
-<div class="mono">baseline: ${esc(a.file ?? '—')} @ ${esc(a.generatedAt ?? '—')}</div>
-<div class="mono">candidate: ${esc(b.file ?? '—')} @ ${esc(b.generatedAt ?? '—')}</div>
+<div class="mono">baseline: ${esc(a.file ?? 'n/a')} @ ${esc(a.generatedAt ?? 'n/a')}</div>
+<div class="mono">candidate: ${esc(b.file ?? 'n/a')} @ ${esc(b.generatedAt ?? 'n/a')}</div>
 <h2>Totals</h2>
 <table><thead><tr><th>Metric</th><th style="text-align:right">Baseline</th><th style="text-align:right">Candidate</th><th style="text-align:right">Delta</th><th style="text-align:right">Δ%</th></tr></thead><tbody>${rows.join('\n')}</tbody></table>
 <h2>Latency (ms)</h2>
 <table><thead><tr><th>Metric</th><th style="text-align:right">Baseline</th><th style="text-align:right">Candidate</th><th style="text-align:right">Delta</th><th style="text-align:right">Δ%</th></tr></thead><tbody>${latRows.join('\n')}</tbody></table>
 <h2>Summary</h2>
 <ul>${summary}</ul>
-<footer>GP-1 compare — deltas are candidate minus baseline. Throughput/MiB/s are client-observed, not capacity claims.</footer>
+<footer>GP-1 compare. Deltas are candidate minus baseline. Throughput/MiB/s are client-observed, not capacity claims.</footer>
 </div></html>`;
 }

@@ -26,8 +26,8 @@ The demo server is a separate local process. Its delay, payload size, and failur
 
 During a run the CLI prints a per-second ticker with two sparklines:
 
-- **Throughput sparkline** — requests completed in the last second, rendered with `▁▂▃▄▅▆▇█` over the last 20 seconds.
-- **Latency sparkline** — mean latency of requests completed in the last second, same 20-slot window.
+- **Throughput sparkline**: requests completed in the last second, rendered with `▁▂▃▄▅▆▇█` over the last 20 seconds.
+- **Latency sparkline**: mean latency of requests completed in the last second, same 20-slot window.
 
 On TTY the ticker rewrites the current line (`\r`); on non-TTY it logs to stderr so stdout stays clean JSON. Sparklines are computed in-process with no extra I/O.
 
@@ -35,8 +35,8 @@ On TTY the ticker rewrites the current line (`\r`); on non-TTY it logs to stderr
 
 `src/html-report.mjs` generates a standalone HTML file with no external dependencies or network fetches. It renders config, totals, latency bars, status-code share, and errors with inline CSS. It is usable two ways:
 
-- `gp-1 --url ... --output run.json --html run.html` — written alongside the JSON report.
-- `gp-1 html run.json --output run.html` — from an existing JSON report.
+- `gp-1 --url ... --output run.json --html run.html`: written alongside the JSON report.
+- `gp-1 html run.json --output run.html`: from an existing JSON report.
 
 A compare HTML variant (`generateCompareHtml`) renders baseline vs candidate deltas.
 
