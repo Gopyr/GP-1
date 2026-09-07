@@ -1,7 +1,7 @@
 {
   "name": "gp-1",
-  "version": "0.3.0",
-  "description": "Safe, reproducible HTTP load-testing and service-observation toolkit.",
+  "version": "0.4.0",
+  "description": "Safe, reproducible HTTP load-testing, service-observation, and authorized pentest-via-Strix toolkit.",
   "type": "module",
   "bin": {
     "gp-1": "./src/cli.mjs"
@@ -10,7 +10,7 @@
     "start": "node src/cli.mjs",
     "help": "node src/cli.mjs --help",
     "test": "node --test",
-    "check": "npm test && node --check src/cli.mjs && node --check src/metrics.mjs && node --check src/assertions.mjs && node --check src/ramp.mjs && node --check src/histogram.mjs"
+    "check": "npm test && node --check src/cli.mjs && node --check src/metrics.mjs && node --check src/assertions.mjs && node --check src/ramp.mjs && node --check src/histogram.mjs && node --check src/pentest.mjs && node --check src/net.mjs"
   },
   "engines": {
     "node": ">=20"

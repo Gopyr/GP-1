@@ -9,8 +9,10 @@ import { generateHtml, generateCompareHtml } from './html-report.mjs';
 import { parseAssertions, parseThresholds, checkSample, checkThresholds } from './assertions.mjs';
 import { parseRamp, totalRampDuration, concurrencyAt } from './ramp.mjs';
 import { enrichReportWithHistogram, renderHistogram } from './histogram.mjs';
+import { isPrivateHost } from './net.mjs';
+import { pentestHelp, parsePentestArgs, validatePentestTarget, preflightPentest, runPentest } from './pentest.mjs';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const HTTP_AGENT = new Agent({ connections: 400, pipelining: 1, keepAliveTimeout: 10_000, keepAliveMaxTimeout: 30_000 });
 const SETTINGS_PATH = new URL('../settings.json', import.meta.url);
 
@@ -35,6 +37,7 @@ Commands:
   (no command)  Run a bounded load test (default)
   compare       Compare two JSON reports and print deltas
   html          Generate a standalone HTML report from a JSON report
+  pentest       Run an authorized AI penetration scan via Strix (gp-1 pentest --help)
 
 HTTP options:
   -u, --url <url>             Target URL (required)
@@ -240,16 +243,6 @@ function parseArgs(argv, settings) {
   options.parsedHeaders = parsedHeaders;
 
   return options;
-}
-
-function isPrivateHost(hostname) {
-  const host = hostname.toLowerCase();
-  if (host === 'localhost' || host === '::1' || host.endsWith('.localhost')) return true;
-  if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return true;
-  const private172 = host.match(/^172\.(\d{1,3})\./);
-  if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return true;
-  if (/^169\.254\./.test(host) || /^fc[0-9a-f]{2}:/i.test(host) || /^fe[89ab][0-9a-f]:/i.test(host)) return true;
-  return false;
 }
 
 function validateTarget(rawUrl, profile, options) {
@@ -638,6 +631,19 @@ async function handleHtml(argv) {
   }
 }
 
+async function handlePentest(argv, settings) {
+  let opts;
+  try {
+    opts = parsePentestArgs(argv, settings);
+  } catch (e) {
+    if (e.message === '__help__') { console.log(pentestHelp()); return; }
+    throw e;
+  }
+  const targetInfo = validatePentestTarget(opts);
+  const preflight = await preflightPentest(opts, targetInfo);
+  await runPentest(opts, preflight, targetInfo);
+}
+
 async function main() {
   const settings = await loadSettings();
   const rawArgs = process.argv.slice(2);
@@ -651,6 +657,10 @@ async function main() {
   }
   if (rawArgs[0] === 'html' || rawArgs[0] === 'report' || rawArgs[0] === 'html-report') {
     await handleHtml(rawArgs.slice(1));
+    return;
+  }
+  if (rawArgs[0] === 'pentest' || rawArgs[0] === 'scan') {
+    await handlePentest(rawArgs.slice(1), settings);
     return;
   }
   if (rawArgs.includes('--help') || rawArgs.includes('-h')) {

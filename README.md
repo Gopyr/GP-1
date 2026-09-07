@@ -123,6 +123,29 @@ GP-1 follows no redirects, sends a descriptive user agent, and never persists re
 
 The report is self-contained (inline CSS, no network fetches) and prints cleanly.
 
+## Authorized Penetration Testing (`gp-1 pentest`)
+
+GP-1 v0.4.0 adds an opt-in, authorized-only subcommand: `gp-1 pentest`. It integrates the **Strix AI autonomous penetration testing engine** into GP-1 for security scanning, vulnerability discovery, and white-box code auditing.
+
+To keep GP-1 safe and trusted as an engineering tool, pentest scans share the same rigorous safety posture as load tests:
+- **Explicit confirmation:** Requires `--pentest-confirm` acknowledging authorization.
+- **Target gating:** Private/loopback targets are accepted; public hostnames require `--allow-public` and `--public-test-confirm`.
+- **Pre-flight verification:** Validates the `strix` binary, Docker sandbox environment, and LLM credentials.
+
+### Usage
+
+```bash
+# White-box code audit of a local directory
+export LLM_API_KEY="9r_..."
+gp-1 pentest ./src --pentest-confirm --mode quick --max-budget 0.3
+
+# Black-box scan of a live local endpoint
+gp-1 pentest http://127.0.0.1:8080 --pentest-confirm --max-turns 20
+```
+
+Results (SARIF findings, penetration test Markdown report, and JSON run logs) are written to `strix_runs/`.
+
+
 ## Report fields
 
 The JSON report is designed for comparison between controlled runs. `p50` describes the median observed latency, while `p95` and `p99` show the slower tail. `requestsPerSecond` is the number of completed observations divided by elapsed wall-clock time. `bytesPerSecond` and `mebibytesPerSecond` are calculated from response bytes actually consumed by the client; they are not claims about maximum server capacity.
