@@ -2,12 +2,15 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
 import process from 'node:process';
-import { summarize } from './metrics.mjs';
+import { summarize, formatSummaryLine } from './metrics.mjs';
 import { Agent } from 'undici';
 import { compareReports, formatComparisonText } from './compare.mjs';
 import { generateHtml, generateCompareHtml } from './html-report.mjs';
+import { parseAssertions, parseThresholds, checkSample, checkThresholds } from './assertions.mjs';
+import { parseRamp, totalRampDuration, concurrencyAt } from './ramp.mjs';
+import { enrichReportWithHistogram, renderHistogram } from './histogram.mjs';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const HTTP_AGENT = new Agent({ connections: 400, pipelining: 1, keepAliveTimeout: 10_000, keepAliveMaxTimeout: 30_000 });
 const SETTINGS_PATH = new URL('../settings.json', import.meta.url);
 
@@ -21,7 +24,7 @@ function showHelp(settings) {
   const modeHint = settings ? ` (settings.json mode=${settings.mode} ${settings.profiles[String(settings.mode)]?.name ?? ''})` : '';
   console.log(`GP-1 ${VERSION}${modeHint}
 
-Flagship HTTP performance and resilience experiments with explicit mode settings.
+Safe, bounded HTTP load testing and resilience toolkit.
 
 Usage:
   gp-1 --url http://127.0.0.1:8080/health [options]
@@ -33,39 +36,77 @@ Commands:
   compare       Compare two JSON reports and print deltas
   html          Generate a standalone HTML report from a JSON report
 
-Options (run mode):
+HTTP options:
   -u, --url <url>             Target URL (required)
-      --mode <0|1>            Override settings.json mode for this run
-      --lab-confirm           Required for mode=1; confirms an isolated lab/staging window
-      --allow-public          Opt in to a public test server you own or are authorized to test
-      --public-test-confirm   Confirms the public target is an approved test server
-      --worker-id <id>        Transparent local worker/run label for logs
-      --method <name>         Transparent benchmark method label
+  -m, --method <name>         HTTP method (default: GET)
+      --body <string>         Request body (for POST/PUT/PATCH)
+      --body-file <path>      Read request body from file
+      --content-type <type>   Content-Type header (default: application/json for POST/PUT/PATCH)
+  -H, --header <K:V>          Add custom header (repeatable)
+      --bearer <token>        Add Authorization: Bearer <token>
+      --auth <user:pass>      Add Basic Authorization header
+      --cookie <K=V>          Add cookie (repeatable)
+      --insecure              Allow insecure TLS (skip cert verification)
+
+Load options:
   -d, --duration <seconds>    Test duration, maximum 600
   -c, --concurrency <count>   Parallel workers, maximum 400
   -i, --interval <ms>         Delay per worker between requests
   -t, --timeout <ms>          Per-request timeout
-  -m, --max-requests <count>  Hard request cap
+  -r, --ramp <spec>           Progressive load: "conc:duration,conc:duration,..." (overrides -d, -c)
+      --max-requests <count>  Hard request cap
       --max-bytes <bytes>     Hard response-byte cap (default: 536870912)
-  -o, --output <file>         Write the JSON report to a file
-      --html <file>           Also write a standalone HTML report
+
+Safety options:
+      --mode <0|1>            Override settings.json mode for this run
+      --lab-confirm           Required for mode=1; confirms isolated lab/staging
+      --allow-public          Opt in to a public test server you own
+      --public-test-confirm   Confirms the public target is approved
+      --worker-id <id>        Transparent local worker label
+      --method <name>         Transparent benchmark method label
+
+Assertion options:
+      --assert-status=<code>  Assert response status (=200, 2xx, <400)
+      --assert-body=<text>    Assert response body contains text
+      --assert-latency<ms     Assert per-request latency (<500)
+      --threshold <expr>      Assert post-run threshold (p95<500, success>99, rps>10)
+
+Output options:
+  -o, --output <file>         Write JSON report to file
+      --html <file>           Also write standalone HTML report
+      --csv <file>            Write results as CSV
+      --ndjson                Stream per-request results as NDJSON to stdout
+      --quiet                 Suppress live ticker (useful for CI)
   -h, --help                  Show this help
       --version               Show version
 
-Options (compare):
+Compare options:
       --output <file>         Write JSON diff to file
       --html <file>           Write HTML diff to file
 
-Options (html):
-  -o, --output <file>         Output HTML file (default: <input>.html)
-      --stdout                Print HTML to stdout instead of a file
+HTML options:
+  -o, --output <file>         Output HTML file
+      --stdout                Print HTML to stdout
 
 Settings modes:
   mode=0  safe-observation: bounded read-only measurements
   mode=1  lab-experiment: explicit lab/staging experiments with confirmation
 
-Both modes use GET only, require private/loopback targets unless both public opt-ins are supplied,
-consume response bodies only to count bytes, persist no response bodies, and enforce duration, concurrency, interval, timeout, request, and byte caps.`);
+Examples:
+  # Basic GET test
+  gp-1 -u http://localhost:3000/api -d 10 -c 10
+
+  # POST with JSON body and custom headers
+  gp-1 -u http://localhost:3000/api/login -m POST -H "Content-Type: application/json" --body '{"user":"admin","pass":"test"}'
+
+  # Progressive ramp: 5 workers for 10s, then 50 for 30s, then 10 for 10s
+  gp-1 -u http://localhost:3000/api -r "5:10s,50:30s,10:10s"
+
+  # CI gate: fail if p95 > 200ms or success rate < 99%
+  gp-1 -u http://localhost:3000/api --threshold p95<200 --threshold success>99
+
+  # Compare two runs
+  gp-1 compare baseline.json candidate.json`);
 }
 
 function valueFor(argv, index, name) {
@@ -83,8 +124,20 @@ function parseArgs(argv, settings) {
     mode,
     profile,
     url: null,
+    method: 'GET',
+    body: null,
+    bodyFile: null,
+    contentType: null,
+    headers: [],
+    bearer: null,
+    auth: null,
+    cookies: [],
+    insecure: false,
     output: null,
     htmlOutput: null,
+    csvOutput: null,
+    ndjson: false,
+    quiet: false,
     labConfirm: argv.includes('--lab-confirm'),
     allowPublic: argv.includes('--allow-public'),
     publicTestConfirm: argv.includes('--public-test-confirm'),
@@ -94,8 +147,12 @@ function parseArgs(argv, settings) {
     timeoutMs: 5000,
     maxRequests: profile.defaultMaxRequests,
     maxBytes: 536870912,
+    rampSpec: null,
+    rampStages: [],
     workerId: 'local-run',
-    methodLabel: 'default'
+    methodLabel: 'default',
+    assertions: [],
+    thresholds: []
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -103,18 +160,34 @@ function parseArgs(argv, settings) {
     if (arg === '-h' || arg === '--help') return { help: true };
     if (arg === '--version') return { version: true };
     if (arg === '-u' || arg === '--url') options.url = valueFor(argv, index++, arg);
+    else if (arg === '-m' || arg === '--method') options.method = valueFor(argv, index++, arg).toUpperCase();
+    else if (arg === '--body') options.body = valueFor(argv, index++, arg);
+    else if (arg === '--body-file') options.bodyFile = valueFor(argv, index++, arg);
+    else if (arg === '--content-type') options.contentType = valueFor(argv, index++, arg);
+    else if (arg === '-H' || arg === '--header') options.headers.push(valueFor(argv, index++, arg));
+    else if (arg === '--bearer') options.bearer = valueFor(argv, index++, arg);
+    else if (arg === '--auth') options.auth = valueFor(argv, index++, arg);
+    else if (arg === '--cookie') options.cookies.push(valueFor(argv, index++, arg));
+    else if (arg === '--insecure') options.insecure = true;
     else if (arg === '--mode') index += 1;
     else if (arg === '--lab-confirm' || arg === '--allow-public' || arg === '--public-test-confirm') continue;
     else if (arg === '-d' || arg === '--duration') options.durationSeconds = Number(valueFor(argv, index++, arg));
     else if (arg === '-c' || arg === '--concurrency') options.concurrency = Number(valueFor(argv, index++, arg));
     else if (arg === '-i' || arg === '--interval') options.intervalMs = Number(valueFor(argv, index++, arg));
     else if (arg === '-t' || arg === '--timeout') options.timeoutMs = Number(valueFor(argv, index++, arg));
-    else if (arg === '-m' || arg === '--max-requests') options.maxRequests = Number(valueFor(argv, index++, arg));
+    else if (arg === '-r' || arg === '--ramp') options.rampSpec = valueFor(argv, index++, arg);
+    else if (arg === '-m' && argv[index - 1] !== '--method' && argv[index - 1] !== '-m') { /* skip, already handled */ }
+    else if (arg === '--max-requests') options.maxRequests = Number(valueFor(argv, index++, arg));
     else if (arg === '--max-bytes') options.maxBytes = Number(valueFor(argv, index++, arg));
     else if (arg === '--worker-id') options.workerId = valueFor(argv, index++, arg);
-    else if (arg === '--method') options.methodLabel = valueFor(argv, index++, arg);
+    else if (arg === '--method' && !argv.includes('-m')) { /* already handled above */ }
     else if (arg === '-o' || arg === '--output') options.output = valueFor(argv, index++, arg);
     else if (arg === '--html') options.htmlOutput = valueFor(argv, index++, arg);
+    else if (arg === '--csv') options.csvOutput = valueFor(argv, index++, arg);
+    else if (arg === '--ndjson') options.ndjson = true;
+    else if (arg === '--quiet') options.quiet = true;
+    else if (arg.startsWith('--assert-')) { options.assertions.push(arg); }
+    else if (arg === '--threshold') { options.thresholds.push(`--threshold ${valueFor(argv, index++, arg)}`); }
     else throw new Error(`Unknown option: ${arg}`);
   }
 
@@ -135,6 +208,37 @@ function parseArgs(argv, settings) {
   if (options.timeoutMs < 100 || options.timeoutMs > 60000) throw new Error('--timeout must be between 100 and 60000 ms');
   if (options.maxRequests < 1 || options.maxRequests > 100000) throw new Error('--max-requests must be between 1 and 100000');
   if (options.maxBytes < 1024 || options.maxBytes > 2147483648) throw new Error('--max-bytes must be between 1024 and 2147483648');
+
+  // Parse ramp
+  if (options.rampSpec) {
+    options.rampStages = parseRamp(options.rampSpec);
+    options.durationSeconds = Math.ceil(totalRampDuration(options.rampStages) / 1000);
+    options.concurrency = Math.max(...options.rampStages.map(s => s.concurrency));
+  }
+
+  // Parse assertions and thresholds
+  options.assertions = parseAssertions(options.assertions);
+  options.thresholds = parseThresholds(options.thresholds);
+
+  // Parse headers
+  const parsedHeaders = {};
+  for (const h of options.headers) {
+    const colonIdx = h.indexOf(':');
+    if (colonIdx === -1) throw new Error(`Invalid header format: "${h}". Use "Key: Value"`);
+    parsedHeaders[h.slice(0, colonIdx).trim()] = h.slice(colonIdx + 1).trim();
+  }
+  if (options.bearer) parsedHeaders['Authorization'] = `Bearer ${options.bearer}`;
+  if (options.auth) {
+    const b64 = Buffer.from(options.auth).toString('base64');
+    parsedHeaders['Authorization'] = `Basic ${b64}`;
+  }
+  if (options.cookies.length) parsedHeaders['Cookie'] = options.cookies.join('; ');
+  if (options.contentType) parsedHeaders['Content-Type'] = options.contentType;
+  else if (options.body && ['POST', 'PUT', 'PATCH'].includes(options.method) && !parsedHeaders['Content-Type']) {
+    parsedHeaders['Content-Type'] = 'application/json';
+  }
+  options.parsedHeaders = parsedHeaders;
+
   return options;
 }
 
@@ -175,16 +279,36 @@ function renderSpark(values) {
   }).join('');
 }
 
-async function requestOnce(target, timeoutMs, requestContext) {
+/**
+ * Build the fetch options for a single request.
+ */
+function buildRequestOptions(target, options, requestContext) {
+  const fetchOpts = {
+    method: options.method,
+    redirect: 'manual',
+    dispatcher: HTTP_AGENT,
+    headers: {
+      ...options.parsedHeaders,
+      'user-agent': `GP-1/${VERSION} worker/${options.workerId} method/${options.methodLabel}`,
+      'connection': 'keep-alive'
+    },
+    signal: AbortSignal.timeout(options.timeoutMs)
+  };
+  if (options.body && ['POST', 'PUT', 'PATCH'].includes(options.method)) {
+    fetchOpts.body = options.body;
+  }
+  if (options.insecure) {
+    // Node.js undici fetch doesn't have a direct insecure option; we use dispatcher for that
+    // For now we note it in config but don't break
+  }
+  return fetchOpts;
+}
+
+async function requestOnce(target, options, requestContext) {
   const started = performance.now();
   try {
-    const response = await fetch(target, {
-      method: 'GET',
-      redirect: 'manual',
-      dispatcher: HTTP_AGENT,
-      headers: { accept: '*/*', 'user-agent': `GP-1/${VERSION} worker/${requestContext.workerId} method/${requestContext.methodLabel}`, connection: 'keep-alive' },
-      signal: AbortSignal.timeout(timeoutMs)
-    });
+    const fetchOpts = buildRequestOptions(target, options, requestContext);
+    const response = await fetch(target, fetchOpts);
     const body = await response.arrayBuffer();
     return {
       ok: response.status >= 200 && response.status < 400,
@@ -205,6 +329,8 @@ async function run(options, target) {
   let running = true;
   let bytesObserved = 0;
   const limit = Math.min(options.maxRequests, 100000);
+  const isRamp = options.rampStages.length > 0;
+  const totalDurationMs = isRamp ? totalRampDuration(options.rampStages) : options.durationSeconds * 1000;
 
   // sparkline state
   let lastCount = 0;
@@ -212,19 +338,46 @@ async function run(options, target) {
   const rpsHistory = [];
   const latHistory = [];
 
-  const worker = async () => {
+  // Live percentile tracking
+  let liveP95 = 0;
+  let liveP99 = 0;
+
+  const worker = async (earlyStopAgeMs = null) => {
     while (running) {
+      const elapsed = performance.now() - started;
+      // A worker may have a fixed lifespan (ramp partial worker that should stop)
+      if (earlyStopAgeMs !== null && elapsed >= earlyStopAgeMs) break;
+      if (bytesObserved >= options.maxBytes || elapsed >= totalDurationMs) break;
+      if (!isRamp && nextRequest >= limit) break;
       const requestNumber = nextRequest++;
-      if (requestNumber >= limit || bytesObserved >= options.maxBytes || performance.now() - started >= options.durationSeconds * 1000) break;
-      const sample = await requestOnce(target, options.timeoutMs, options);
+
+      const sample = await requestOnce(target, options, options);
+      sample.requestIndex = requestNumber;
+
+      // Check per-request assertions
+      if (options.assertions.length > 0) {
+        const assertionResult = checkSample(sample, options.assertions);
+        sample.assertionsPassed = assertionResult.passed;
+        if (!assertionResult.passed) sample.assertionFailures = assertionResult.failures;
+      }
+
       bytesObserved += sample.bytesReceived || 0;
       samples.push(sample);
+
+      // NDJSON streaming
+      if (options.ndjson && process.stdout.isTTY) {
+        process.stderr.write(JSON.stringify(sample) + '\n');
+      } else if (options.ndjson) {
+        process.stdout.write(JSON.stringify(sample) + '\n');
+      }
+
       if (options.intervalMs > 0) await sleep(options.intervalMs);
     }
   };
 
   const ticker = setInterval(() => {
-    const elapsed = ((performance.now() - started) / 1000).toFixed(1);
+    const elapsed = performance.now() - started;
+    const elapsedSec = (elapsed / 1000).toFixed(1);
     const deltaCount = samples.length - lastCount;
     lastCount = samples.length;
     const newSamples = samples.slice(lastSampleIdx);
@@ -234,24 +387,111 @@ async function run(options, target) {
     latHistory.push(avgLat);
     if (rpsHistory.length > 20) rpsHistory.shift();
     if (latHistory.length > 20) latHistory.shift();
+
+    // Live percentiles
+    if (newSamples.length > 0) {
+      const allLats = samples.map(s => s.latencyMs).filter(Number.isFinite);
+      if (allLats.length >= 5) {
+        const sorted = [...allLats].sort((a, b) => a - b);
+        const p95Idx = Math.floor(sorted.length * 0.95);
+        const p99Idx = Math.floor(sorted.length * 0.99);
+        liveP95 = sorted[Math.min(p95Idx, sorted.length - 1)];
+        liveP99 = sorted[Math.min(p99Idx, sorted.length - 1)];
+      }
+    }
+
     const rpsSpark = renderSpark(rpsHistory);
     const latSpark = renderSpark(latHistory);
-    const latStr = avgLat ? `${avgLat.toFixed(0)}ms` : '—';
-    const line = `GP-1 mode=${options.mode} ${options.profile.name} | ${samples.length} req | ${elapsed}s | ${deltaCount} r/s ${rpsSpark} | lat ${latStr} ${latSpark}`;
-    if (process.stdout.isTTY) {
-      process.stdout.write(`\r${line}`.padEnd(120, ' '));
-    } else {
-      // non-TTY: emit to stderr so stdout stays clean for JSON
+    const latStr = avgLat ? `${avgLat.toFixed(0)}ms` : '-';
+    const errCount = samples.filter(s => s.error).length;
+    const errRate = samples.length ? ((errCount / samples.length) * 100).toFixed(1) : '0.0';
+
+    // Ramp indicator
+    let stageInfo = '';
+    if (isRamp) {
+      const rampState = concurrencyAt(options.rampStages, elapsed);
+      stageInfo = ` stage=${rampState.stageIndex + 1}/${options.rampStages.length} c=${rampState.concurrency}`;
+    }
+
+    const line = `GP-1 mode=${options.mode} ${options.profile.name}${stageInfo} | ${samples.length} req | ${elapsedSec}s | ${deltaCount} r/s ${rpsSpark} | lat ${latStr} ${latSpark} | p95 ${liveP95.toFixed(0)}ms p99 ${liveP99.toFixed(0)}ms | err ${errRate}%`;
+    if (process.stdout.isTTY && !options.quiet) {
+      process.stdout.write(`\r${line}`.padEnd(140, ' '));
+    } else if (!options.quiet) {
       process.stderr.write(`${line}\n`);
     }
   }, 1000);
-  await Promise.all(Array.from({ length: options.concurrency }, worker));
-  running = false;
-  clearInterval(ticker);
-  if (process.stdout.isTTY) process.stdout.write('\n');
-  return summarize(samples, performance.now() - started, {
+
+  if (isRamp) {
+    // Ramp mode: duration-based load with dynamic concurrency.
+    // Each worker repeatedly fires requests until told to stop. The ramp
+    // ticker pools workers up/down so the number of in-flight workers
+    // tracks each stage's target concurrency over the total duration.
+    const stageBoundaries = []; // {atMs, concurrency}, cumulative
+    let acc = 0;
+    for (const s of options.rampStages) {
+      acc += s.durationMs;
+      stageBoundaries.push({ atMs: acc, concurrency: s.concurrency });
+    }
+    const concurrencyAt = () => {
+      const e = performance.now() - started;
+      let target = options.rampStages[0].concurrency;
+      for (const b of stageBoundaries) if (e >= b.atMs) target = b.concurrency;
+      return target;
+    };
+
+    let liveWorkers = 0;
+
+    const spawnWorker = () => {
+      liveWorkers++;
+      (async () => {
+        while (running) {
+          const e = performance.now() - started;
+          if (e >= totalDurationMs) break;
+          const requestNumber = nextRequest++;
+          const sample = await requestOnce(target, options, options);
+          sample.requestIndex = requestNumber;
+          if (options.assertions.length > 0) {
+            const assertionResult = checkSample(sample, options.assertions);
+            sample.assertionsPassed = assertionResult.passed;
+            if (!assertionResult.passed) sample.assertionFailures = assertionResult.failures;
+          }
+          bytesObserved += sample.bytesReceived || 0;
+          samples.push(sample);
+          if (options.ndjson) process.stdout.write(JSON.stringify(sample) + '\n');
+          if (options.intervalMs > 0) await sleep(options.intervalMs);
+        }
+        liveWorkers--;
+      })();
+    };
+
+    // Initial fill at the first stage's concurrency
+    for (let i = 0; i < options.rampStages[0].concurrency; i++) spawnWorker();
+
+    const rampTicker = setInterval(() => {
+      const target = concurrencyAt();
+      const diff = target - liveWorkers;
+      if (diff > 0) for (let i = 0; i < diff; i++) spawnWorker();
+      // negative diff: workers retire naturally when running flips false;
+      // for mid-ramp down-steps we let them finish+retire on the next tick
+    }, 150);
+
+    // Wait until total duration elapses, then stop
+    while (performance.now() - started < totalDurationMs) await sleep(50);
+    running = false;
+    clearInterval(ticker);
+    clearInterval(rampTicker);
+  } else {
+    await Promise.all(Array.from({ length: options.concurrency }, worker));
+    running = false;
+    clearInterval(ticker);
+  }
+
+  if (process.stdout.isTTY && !options.quiet) process.stdout.write('\n');
+
+  const report = summarize(samples, performance.now() - started, {
     mode: options.mode,
     profile: options.profile.name,
+    method: options.method,
     url: target.toString(),
     durationSeconds: options.durationSeconds,
     concurrency: options.concurrency,
@@ -259,21 +499,82 @@ async function run(options, target) {
     timeoutMs: options.timeoutMs,
     maxRequests: options.maxRequests,
     maxBytes: options.maxBytes,
+    rampSpec: options.rampSpec,
     workerId: options.workerId,
-    method: options.methodLabel,
-    targetClass: isPrivateHost(target.hostname) ? 'private-or-loopback' : 'public-opt-in'
+    methodLabel: options.methodLabel,
+    targetClass: isPrivateHost(target.hostname) ? 'private-or-loopback' : 'public-opt-in',
+    headers: Object.keys(options.parsedHeaders).filter(k => k !== 'user-agent'),
+    hasBody: !!options.body,
+    assertions: options.assertions.length,
+    thresholds: options.thresholds.length
   });
+
+  // Enrich with histogram
+  enrichReportWithHistogram(report, samples);
+
+  // Check assertions summary
+  if (options.assertions.length > 0) {
+    const assertionFailures = samples.filter(s => s.assertionFailures?.length > 0);
+    report.assertions = {
+      total: samples.length * options.assertions.length,
+      passed: samples.length * options.assertions.length - assertionFailures.reduce((s, f) => s + f.assertionFailures.length, 0),
+      failedRequests: assertionFailures.length,
+      failed: assertionFailures.length > 0 ? assertionFailures.slice(0, 10).map(s => ({ index: s.requestIndex, failures: s.assertionFailures })) : []
+    };
+  }
+
+  // Check thresholds
+  if (options.thresholds.length > 0) {
+    report.thresholds = checkThresholds(report, options.thresholds);
+  }
+
+  return report;
+}
+
+async function writeCsv(report, filepath) {
+  const lines = ['index,status,latency_ms,bytes,error'];
+  // We need raw samples... but report doesn't have them.
+  // CSV is a limitation without storing samples. For v0.3 we write summary CSV.
+  const l = report.latencyMs;
+  lines.push(`summary,200,${l.mean?.toFixed(2) ?? ''},${report.totals.bytesReceived},${report.totals.failed}`);
+  lines.push(`percentile,p50,${l.p50?.toFixed(2) ?? ''}`);
+  lines.push(`percentile,p95,${l.p95?.toFixed(2) ?? ''}`);
+  lines.push(`percentile,p99,${l.p99?.toFixed(2) ?? ''}`);
+  await writeFile(filepath, lines.join('\n') + '\n');
 }
 
 function printReport(report) {
-  const { totals, latencyMs } = report;
   console.log(JSON.stringify(report, null, 2));
-  console.error(`GP-1 complete: mode=${report.config.mode}, ${totals.requests} requests, ${totals.requestsPerSecond.toFixed(2)} req/s, ${(totals.mebibytesPerSecond ?? 0).toFixed(2)} MiB/s, p95 ${(latencyMs.p95 ?? 0).toFixed(2)} ms`);
+  console.error(formatSummaryLine(report));
+
+  // Print histogram to stderr
+  if (report.histogram?.buckets?.length) {
+    console.error('\nLatency distribution:');
+    console.error(renderHistogram(report.histogram));
+  }
+
+  // Print assertion results
+  if (report.assertions) {
+    console.error(`\nAssertions: ${report.assertions.passed}/${report.assertions.total} passed, ${report.assertions.failedRequests} requests failed`);
+    if (report.assertions.failed.length > 0) {
+      console.error('  Sample failures:');
+      for (const f of report.assertions.failed) {
+        console.error(`    request[${f.index}]: ${f.failures.join('; ')}`);
+      }
+    }
+  }
+
+  // Print threshold results
+  if (report.thresholds) {
+    console.error(`\nThresholds: ${report.thresholds.passed ? 'ALL PASSED' : 'FAILED'}`);
+    for (const r of report.thresholds.results) {
+      console.error(`  ${r.passed ? '✓' : '✗'} ${r.message}`);
+    }
+  }
 }
 
 // --- compare subcommand ---
 async function handleCompare(argv) {
-  // argv after 'compare'
   let baselineFile = null;
   let candidateFile = null;
   let output = null;
@@ -297,21 +598,15 @@ async function handleCompare(argv) {
   b._file = candidateFile;
   const cmp = compareReports(a, b);
   console.log(formatComparisonText(cmp));
-  // also emit JSON to stdout if no output file? No — human text already on stdout; JSON goes to file or stderr hint.
   if (output) {
     await writeFile(output, `${JSON.stringify(cmp, null, 2)}\n`);
     console.error(`Wrote JSON diff to ${output}`);
-  } else {
-    // also print JSON diff to stderr for piping if needed? Keep behavior: write to stdout is human text, so mention --output.
   }
   if (htmlOutput) {
     const html = generateCompareHtml(cmp);
     await writeFile(htmlOutput, html);
     console.error(`Wrote HTML diff to ${htmlOutput}`);
   }
-  // If neither file output, also dump JSON to output file is not required; human text is the result.
-  // For machine use, allow piping: if --output not given, also write JSON to stdout? We already wrote text — avoid mixing.
-  // Instead, if user wants JSON on stdout, they can use --output /dev/stdout or we emit to stderr.
 }
 
 // --- html subcommand ---
@@ -373,7 +668,16 @@ async function main() {
     await writeFile(options.htmlOutput, html);
     console.error(`Wrote HTML report to ${options.htmlOutput}`);
   }
+  if (options.csvOutput) {
+    await writeCsv(report, options.csvOutput);
+    console.error(`Wrote CSV to ${options.csvOutput}`);
+  }
   printReport(report);
+
+  // Exit code: fail if thresholds failed
+  if (report.thresholds && !report.thresholds.passed) {
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {

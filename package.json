@@ -1,6 +1,6 @@
 {
   "name": "gp-1",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Safe, reproducible HTTP load-testing and service-observation toolkit.",
   "type": "module",
   "bin": {
@@ -10,7 +10,7 @@
     "start": "node src/cli.mjs",
     "help": "node src/cli.mjs --help",
     "test": "node --test",
-    "check": "npm test && node --check src/cli.mjs && node --check src/metrics.mjs"
+    "check": "npm test && node --check src/cli.mjs && node --check src/metrics.mjs && node --check src/assertions.mjs && node --check src/ramp.mjs && node --check src/histogram.mjs"
   },
   "engines": {
     "node": ">=20"

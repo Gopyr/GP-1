@@ -1,7 +1,7 @@
 /**
  * GP-1 HTML report generator. Zero dependencies, standalone HTML.
- * Input: report from src/metrics.mjs summarize() (schemaVersion 2).
- * Output: string of HTML with CSS fade-in and a data-driven SVG sparkline.
+ * Input: report from src/metrics.mjs summarize() (schemaVersion 2+).
+ * Output: string of HTML with CSS fade-in and data-driven SVG sparkline.
  */
 
 function esc(s) {
@@ -20,8 +20,6 @@ function barWidth(value, max) {
 
 /**
  * Data-driven sparkline from the report's latency percentiles.
- * Points are placed on a log-ish curve (min, mean, p50, p95, p99, max),
- * so the shape always reflects real numbers, never a fake pattern.
  */
 function sparkline(l, W = 560, H = 96) {
   const keys = ['min', 'mean', 'p50', 'p95', 'p99', 'max'];
@@ -59,6 +57,71 @@ ${labels}
 </svg>`;
 }
 
+/**
+ * SVG bar chart for latency distribution buckets.
+ */
+function histogramChart(hist, W = 560, H = 140) {
+  if (!hist?.buckets?.length) return '';
+  const maxCount = hist.maxCount || 1;
+  const pad = { top: 10, right: 10, bottom: 30, left: 40 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+  const barW = chartW / hist.buckets.length - 2;
+
+  const bars = hist.buckets.map((b, i) => {
+    const h = Math.max(1, (b.count / maxCount) * chartH);
+    const x = pad.left + i * (chartW / hist.buckets) + 1;
+    const y = pad.top + chartH - h;
+    const label = b.count > 0 ? `${b.count}` : '';
+    const rangeLabel = `${b.min.toFixed(0)}`;
+    return `<rect x="${x}" y="${y}" width="${Math.max(barW, 1)}" height="${h}" fill="#58a6ff" rx="2" opacity="0.8">
+      <title>${b.min.toFixed(0)}-${b.max.toFixed(0)}ms: ${b.count} requests</title>
+    </rect>
+    ${b.count > 0 ? `<text x="${x + barW / 2}" y="${y - 3}" text-anchor="middle" font-size="8" fill="#8b949e">${label}</text>` : ''}
+    ${i % Math.max(1, Math.floor(hist.buckets.length / 8)) === 0 ? `<text x="${x + barW / 2}" y="${H - 4}" text-anchor="middle" font-size="8" fill="#8b949e">${rangeLabel}</text>` : ''}`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Latency distribution histogram" style="display:block;margin:10px 0">
+    <line x1="${pad.left}" y1="${pad.top + chartH}" x2="${W - pad.right}" y2="${pad.top + chartH}" stroke="#212d3d" stroke-width="1"/>
+    ${bars}
+  </svg>`;
+}
+
+/**
+ * Threshold status banner
+ */
+function thresholdBanner(thresholds) {
+  if (!thresholds?.results?.length) return '';
+  const passed = thresholds.passed;
+  const bg = passed ? '#0d2818' : '#2d1117';
+  const border = passed ? '#2ea043' : '#f85149';
+  const icon = passed ? '✓' : '✗';
+  const color = passed ? '#2ea043' : '#f85149';
+  const rows = thresholds.results.map(r =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
+      <span style="color:${r.passed ? '#2ea043' : '#f85149'};font-weight:600">${r.passed ? '✓' : '✗'}</span>
+      <span>${esc(r.message)}</span>
+    </div>`
+  ).join('');
+  return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:12px 16px;margin:16px 0">
+    <div style="font-weight:600;color:${color};margin-bottom:6px">${icon} Thresholds: ${passed ? 'ALL PASSED' : 'FAILED'}</div>
+    ${rows}
+  </div>`;
+}
+
+/**
+ * Assertion status section
+ */
+function assertionSection(assertions) {
+  if (!assertions) return '';
+  const rate = assertions.total > 0 ? ((assertions.passed / assertions.total) * 100).toFixed(1) : '0';
+  const bg = assertions.failedRequests === 0 ? '#0d2818' : '#2d1117';
+  const color = assertions.failedRequests === 0 ? '#2ea043' : '#f85149';
+  return `<div style="background:${bg};border:1px solid ${color}33;border-radius:8px;padding:12px 16px;margin:16px 0">
+    <div style="font-weight:600;color:${color}">Assertions: ${rate}% pass rate (${assertions.passed}/${assertions.total} passed, ${assertions.failedRequests} requests failed)</div>
+  </div>`;
+}
+
 export function generateHtml(report) {
   const cfg = report.config ?? {};
   const t = report.totals ?? {};
@@ -66,12 +129,18 @@ export function generateHtml(report) {
   const sc = report.statusCodes ?? {};
   const er = report.errors ?? {};
   const elapsed = report.elapsedMs ?? 0;
+  const hist = report.histogram;
   const title = `GP-1 Report. ${esc(cfg.url ?? 'unknown target')}. ${esc(report.generatedAt ?? '')}`;
   const latencyMax = Math.max(l.p99 ?? 0, l.p95 ?? 0, l.max ?? 0, 1);
 
   const statusRows = Object.entries(sc).sort((a, b) => Number(a[0]) - Number(b[0]))
     .map(([code, count]) => `<tr style="animation:rise .5s ease both"><td>${esc(code)}</td><td class="num">${esc(count)}</td><td class="bar-cell"><div class="bar" style="width:${barWidth(count, t.requests)}%"></div></td></tr>`).join('\n') || '<tr><td colspan="3" class="muted">No status codes</td></tr>';
   const errorRows = Object.entries(er).map(([name, count]) => `<tr style="animation:rise .5s ease both"><td>${esc(name)}</td><td class="num">${esc(count)}</td></tr>`).join('\n') || '<tr><td colspan="2" class="muted">No errors</td></tr>';
+
+  // Latency distribution bucket rows
+  const bucketRows = hist?.buckets?.length
+    ? hist.buckets.map(b => `<tr><td>${b.min.toFixed(0)}-${b.max.toFixed(0)}ms</td><td class="num">${b.count}</td><td class="bar-cell"><div class="bar" style="width:${barWidth(b.count, hist.maxCount)}%"></div></td></tr>`).join('\n')
+    : '<tr><td colspan="3" class="muted">No distribution data</td></tr>';
 
   return `<!doctype html>
 <html lang="en">
@@ -89,10 +158,7 @@ h2{font-size:16px;margin:28px 0 12px;color:#c9d1d9;border-bottom:1px solid #1f2a
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 .card{background:#111824;border:1px solid #1f2a36;border-radius:10px;padding:14px;animation:rise .5s ease both}
-.card:nth-child(1){animation-delay:.05s}
-.card:nth-child(2){animation-delay:.12s}
-.card:nth-child(3){animation-delay:.19s}
-.card:nth-child(4){animation-delay:.26s}
+.card:nth-child(1){animation-delay:.05s}.card:nth-child(2){animation-delay:.12s}.card:nth-child(3){animation-delay:.19s}.card:nth-child(4){animation-delay:.26s}.card:nth-child(5){animation-delay:.33s}.card:nth-child(6){animation-delay:.40s}
 .card .k{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.04em}
 .card .v{font-size:20px;font-weight:650;margin-top:4px}
 .card .s{font-size:12px;color:#8b949e;margin-top:2px}
@@ -119,17 +185,22 @@ footer{margin-top:32px;padding-top:16px;border-top:1px solid #1f2a36;color:#8b94
 </style>
 <div class="wrap">
 <header>
-  <div class="badge">GP-1 ${esc(report.schemaVersion ?? '?')} · ${esc(cfg.profile ?? 'unknown')} · mode ${esc(cfg.mode ?? '?')}</div>
+  <div class="badge">GP-1 ${esc(report.schemaVersion ?? '?')} · ${esc(cfg.profile ?? 'unknown')} · mode ${esc(cfg.mode ?? '?')} · ${esc(cfg.method ?? 'GET')}</div>
   <h1>GP-1 Load Report</h1>
   <div class="mono">${esc(cfg.url ?? 'n/a')}</div>
   <div class="muted">Generated ${esc(report.generatedAt ?? 'n/a')} · elapsed ${fmtNum(elapsed, 0)} ms · ${esc(cfg.targetClass ?? '')}</div>
 </header>
+
+${thresholdBanner(report.thresholds)}
+${assertionSection(report.assertions)}
 
 <div class="grid">
   <div class="card"><div class="k">Requests</div><div class="v">${fmtNum(t.requests, 0)}</div><div class="s">${fmtNum(t.successful, 0)} ok · ${fmtNum(t.failed, 0)} failed · ${(Number.isFinite(t.successRate) ? (t.successRate * 100).toFixed(1) : 'n/a')}% success</div></div>
   <div class="card"><div class="k">Throughput</div><div class="v">${fmtNum(t.requestsPerSecond)} <span style="font-size:13px;font-weight:500">req/s</span></div><div class="s">${fmtNum(t.mebibytesPerSecond)} MiB/s · ${fmtNum(t.bytesPerSecond, 0)} B/s</div></div>
   <div class="card"><div class="k">Bytes received</div><div class="v">${fmtNum(t.bytesReceived, 0)}</div><div class="s">total response bytes counted</div></div>
   <div class="card"><div class="k">p95 latency</div><div class="v">${fmtNum(l.p95)} <span style="font-size:13px;font-weight:500">ms</span></div><div class="s">p50 ${fmtNum(l.p50)} · p99 ${fmtNum(l.p99)} · max ${fmtNum(l.max)}</div></div>
+  <div class="card"><div class="k">Error rate</div><div class="v" style="color:${(t.errorRate ?? 0) > 0.05 ? '#f85149' : '#2ea043'}">${fmtNum((t.errorRate ?? 0) * 100, 1)}%</div><div class="s">${fmtNum(t.failed, 0)} failed / ${fmtNum(t.requests, 0)} total</div></div>
+  <div class="card"><div class="k">Std deviation</div><div class="v">${fmtNum(l.stddev)} <span style="font-size:13px;font-weight:500">ms</span></div><div class="s">latency spread · p10 ${fmtNum(l.p10)} · p75 ${fmtNum(l.p75)}</div></div>
 </div>
 
 ${sparkline(l)}
@@ -142,9 +213,14 @@ ${sparkline(l)}
 <div class="lat-row"><span class="lat-label">p99</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.p99, latencyMax)}%;width:${barWidth(l.p99, latencyMax)}%;background:#f85149"></div></div><span class="lat-val">${fmtNum(l.p99)} ms</span></div>
 <div class="lat-row"><span class="lat-label">max</span><div class="lat-bar"><div class="lat-fill" style="--w:${barWidth(l.max, latencyMax)}%;width:${barWidth(l.max, latencyMax)}%;background:#f85149"></div></div><span class="lat-val">${fmtNum(l.max)} ms</span></div>
 
+<h2>Latency Distribution</h2>
+${histogramChart(hist)}
+<table><thead><tr><th>Range</th><th style="text-align:right">Count</th><th>Share</th></tr></thead><tbody>${bucketRows}</tbody></table>
+
 <h2>Configuration</h2>
 <dl class="cfg">
   <dt>URL</dt><dd>${esc(cfg.url ?? 'n/a')}</dd>
+  <dt>Method</dt><dd>${esc(cfg.method ?? 'GET')}</dd>
   <dt>Mode / profile</dt><dd>${esc(cfg.mode ?? 'n/a')} / ${esc(cfg.profile ?? 'n/a')}</dd>
   <dt>Duration</dt><dd>${esc(cfg.durationSeconds ?? 'n/a')} s</dd>
   <dt>Concurrency</dt><dd>${esc(cfg.concurrency ?? 'n/a')}</dd>
@@ -152,7 +228,12 @@ ${sparkline(l)}
   <dt>Timeout</dt><dd>${esc(cfg.timeoutMs ?? 'n/a')} ms</dd>
   <dt>Max requests</dt><dd>${esc(cfg.maxRequests ?? 'n/a')}</dd>
   <dt>Max bytes</dt><dd>${esc(cfg.maxBytes ?? 'n/a')}</dd>
-  <dt>Worker</dt><dd>${esc(cfg.workerId ?? 'n/a')} · ${esc(cfg.method ?? 'n/a')}</dd>
+  <dt>Worker</dt><dd>${esc(cfg.workerId ?? 'n/a')} · ${esc(cfg.methodLabel ?? 'n/a')}</dd>
+  ${cfg.rampSpec ? `<dt>Ramp</dt><dd>${esc(cfg.rampSpec)}</dd>` : ''}
+  ${cfg.headers?.length ? `<dt>Custom headers</dt><dd>${cfg.headers.map(esc).join(', ')}</dd>` : ''}
+  ${cfg.hasBody ? `<dt>Request body</dt><dd>yes (${esc(cfg.method ?? 'GET')})</dd>` : ''}
+  ${cfg.assertions ? `<dt>Assertions</dt><dd>${cfg.assertions} per-request</dd>` : ''}
+  ${cfg.thresholds ? `<dt>Thresholds</dt><dd>${cfg.thresholds} post-run</dd>` : ''}
 </dl>
 
 <h2>Status codes</h2>

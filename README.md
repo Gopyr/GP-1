@@ -10,10 +10,12 @@ GP-1 is the **main project** in the Gopyr profile and the serious successor to t
 
 | Principle | Implementation |
 | --- | --- |
-| **Bounded by default** | Duration, concurrency, timeout, interval, and total request limits are validated before a run. |
+| **Bounded by default** | Duration, concurrency, timeout, interval, ramp stages, and total request limits are validated before a run. |
 | **Safe target handling** | Loopback and private targets work by default. A public hostname requires an explicit `--allow-public` flag and authorization. |
-| **Read-only HTTP probe** | GP-1 sends `GET` requests only, consumes responses to count bytes, and does not persist response bodies. |
-| **Evidence over claims** | Reports include success rate, request throughput, total bytes, MiB/s, status codes, errors, and p50/p95/p99 latency. |
+| **Any HTTP method** | GET/POST/PUT/PATCH/DELETE with request bodies, custom headers, bearer/basic auth, and cookies. Response bodies are counted for bytes, never persisted. |
+| **Assertions & gates** | Per-request assertions (`--assert-status`, `--assert-latency`) and post-run thresholds (`--threshold p95<500`) that fail the run and exit non-zero for CI. |
+| **Evidence over claims** | Reports include success/error rate, throughput, MiB/s, status codes, errors, p5-p99 latency, std deviation, a latency histogram, and a distribution chart. |
+| **Progressive load** | `--ramp "5:10s,50:30s,5:10s"` ramps concurrency across stages instead of a flat rate. |
 | **Reproducible experiments** | The repository includes a local demo server and a documented baseline procedure. |
 | **Honest scope** | This is a single-process load generator, not a distributed platform, DDoS tool, scanner, or production SLO system. |
 
@@ -44,22 +46,22 @@ npm test
 node src/cli.mjs --help
 ```
 
-Run the included local experiment:
+Run a load test against your endpoint:
 
 ```bash
-node scripts/demo-server.mjs
-```
+# Basic GET
+node src/cli.mjs --url http://127.0.0.1:8123/health --duration 5 --concurrency 4
 
-In another terminal:
+# POST with a JSON body, bearer auth, and a per-request assertion
+node src/cli.mjs --url http://127.0.0.1:8123/api/login --method POST \
+  --body '{"user":"admin","pass":"x"}' --bearer tok123 \
+  --assert-status=200 --assert-latency<200
 
-```bash
-node src/cli.mjs \
-  --url http://127.0.0.1:8123/health \
-  --duration 5 \
-  --concurrency 4 \
-  --interval 50 \
-  --max-requests 400 \
-  --output experiments/results/localhost-baseline.json
+# Progressive ramp: 5 workers for 10s, ramp to 50 for 30s, cool down to 5
+node src/cli.mjs --url http://127.0.0.1:8123/api --ramp "5:10s,50:30s,5:10s"
+
+# CI gate: fail (exit 1) unless p95 < 200ms and success > 99%
+node src/cli.mjs --url http://127.0.0.1:8123/api --threshold p95<200 --threshold success>99
 ```
 
 ## CLI reference
@@ -67,14 +69,29 @@ node src/cli.mjs \
 | Option | Meaning | Default and limit |
 | --- | --- | --- |
 | `--url` | HTTP or HTTPS URL to test | Required |
+| `--method` | HTTP method: GET, POST, PUT, PATCH, DELETE | `GET` |
+| `--body` / `--body-file` | Request body (string or file) | None |
+| `--content-type` | Content-Type header | `application/json` for POST/PUT/PATCH with a body |
+| `-H/--header <K:V>` | Custom header (repeatable) | None |
+| `--bearer <token>` | Sets `Authorization: Bearer <token>` | None |
+| `--auth <user:pass>` | Sets `Authorization: Basic` header | None |
+| `--cookie <K=V>` | Cookie (repeatable) | None |
 | `--duration` | Maximum run duration in seconds | `10`, maximum `600` |
 | `--concurrency` | Number of parallel workers | `5`, maximum `400` |
+| `--ramp <spec>` | Progressive load per stage (`conc:duration,...`) | Flat concurrency |
 | `--interval` | Delay per worker between requests in milliseconds | `50`, maximum `60000` |
 | `--timeout` | Per-request timeout | `5000`, range `100–60000` |
 | `--max-requests` | Hard cap across the whole run | `1000`, maximum `100000` |
 | `--max-bytes` | Hard cap on response bytes counted | `536870912`, maximum `2147483648` |
+| `--assert-status=<code>` | Per-request status assertion (`200`, `2xx`, `<400`) | None |
+| `--assert-body=<text>` | Per-request body-contains assertion | None |
+| `--assert-latency<ms` | Per-request latency assertion | None |
+| `--threshold <expr>` | Post-run gate (e.g. `p95<500`, `success>99`, `rps>10`); fails the run | None |
 | `--output` | Write the JSON report to a file | Optional |
 | `--html` | Also write a standalone HTML report | Optional |
+| `--csv` | Write a summary CSV | Optional |
+| `--ndjson` | Stream per-request results as newline-delimited JSON | Off |
+| `--quiet` | Suppress the live ticker (for CI) | Off |
 | `--mode <0|1>` | Override the `settings.json` mode for one run | Uses `settings.json` |
 | `--lab-confirm` | Required by mode `1` | Off by default |
 | `--allow-public` | Opt in to an owned/authorized public test server | Off by default |
@@ -94,15 +111,15 @@ node src/cli.mjs html experiments/results/localhost-baseline.json --stdout > /tm
 node src/cli.mjs --url http://127.0.0.1:8123/health --duration 5 --output /tmp/run.json --html /tmp/run.html
 ```
 
-Live progress shows a per-second sparkline: throughput (`r/s ▁▂▃▆█`) and latency (`▁▂▅▇`) updated every second. On TTY it rewrites the current line; on non-TTY it logs to stderr so stdout stays clean JSON.
+Live progress shows a per-second sparkline: throughput (`r/s ▁▂▃▆█`), latency (`▁▂▅▇`), and live p95/p99, updated every second. On TTY it rewrites the current line; on non-TTY it logs to stderr so stdout stays clean JSON.
 
-GP-1 uses `GET` only, follows no redirects, sends a descriptive user agent, and never persists response bodies. Status codes from the 2xx and 3xx ranges count as successful observations; 4xx, 5xx, timeout, and network errors are reported separately.
+GP-1 follows no redirects, sends a descriptive user agent, and never persists response bodies. Status codes from the 2xx and 3xx ranges count as successful observations; 4xx, 5xx, timeout, and network errors are reported separately. Any HTTP method is allowed, so use GP-1 only against endpoints you own or have permission to test.
 
 ## HTML report preview
 
-`gp-1 html <report.json>` (or `--html out.html` during a run) writes a standalone, dependency-free HTML report. Sample output from the saturation run:
+`gp-1 html <report.json>` (or `--html out.html` during a run) writes a standalone, dependency-free HTML report. It shows metric cards (requests, throughput, p95 latency, error rate, std deviation), a latency sparkline, a distribution histogram, status/error tables, and threshold/assertion pass blocks. Real output from a POST run against a local endpoint:
 
-![GP-1 HTML report](screenshots/html-report.png)
+![GP-1 HTML report showing thresholds ALL PASSED, assertions 196/196, metric cards, sparkline, and latency distribution](assets/html-report.png)
 
 The report is self-contained (inline CSS, no network fetches) and prints cleanly.
 
@@ -123,10 +140,13 @@ The request path, mode semantics, report contract, and local demo server are des
 ## Project layout
 
 ```text
-src/cli.mjs                 CLI, guardrails, request runner, JSON reporting, sparklines, compare/html
-src/metrics.mjs             Percentile and summary calculations
+src/cli.mjs                 CLI, guardrails, request runner, JSON reporting, sparklines, ramp, compare/html
+src/metrics.mjs             Percentile, summary, std deviation, distribution bucket calculations
+src/assertions.mjs          Per-request assertions and post-run threshold checking (CI gates)
+src/ramp.mjs                Progressive-load stage parsing and live-concurrency scheduling
+src/histogram.mjs           Latency distribution buckets and ASCII/SVG rendering
 src/compare.mjs             JSON report comparison (delta + %)
-src/html-report.mjs         Standalone HTML report generator (no deps)
+src/html-report.mjs         Standalone HTML report generator with sparkline + histogram (no deps)
 scripts/demo-server.mjs     Local-only demo endpoint for reproducible runs
 scripts/public-test-server.mjs Temporary public test server with observability
 scripts/run-public-experiment.sh Bounded public-network experiment runner
@@ -135,7 +155,8 @@ scripts/run-77x-benchmark.sh Full 77x stress and recovery matrix
 scripts/run-combo-benchmark.sh Combined sustained and burst benchmark
 scripts/run-local-2000-workers.mjs Multi-process local worker benchmark
 scripts/run-saturation-controller.mjs Controlled concurrency ramp with live telemetry and auto-cut
-test/metrics.test.mjs       Automated metric tests
+test/metrics.test.mjs       Metric, assertion, ramp, and histogram tests
+test/cli-guardrails.test.mjs CLI guardrail tests
 docs/77x-benchmark-plan.md  77x dimensions and comparison method
 docs/saturation-plan.md     Saturation thresholds and stop conditions
 docs/combo-benchmark-plan.md Combo scale and stage definitions

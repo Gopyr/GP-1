@@ -1,5 +1,5 @@
 /**
- * GP-1 compare — diff two JSON reports (schemaVersion 2).
+ * GP-1 compare — diff two JSON reports (schemaVersion 2+).
  * Pure logic: no I/O side effects except via caller.
  */
 
@@ -35,15 +35,15 @@ function dictDiff(a = {}, b = {}) {
 
 export function compareReports(baseline, candidate) {
   if (!baseline || !candidate) throw new Error('Both reports are required');
-  const totalKeys = ['requests', 'successful', 'failed', 'successRate', 'requestsPerSecond', 'bytesReceived', 'bytesPerSecond', 'mebibytesPerSecond'];
-  const latencyKeys = ['min', 'mean', 'p50', 'p95', 'p99', 'max'];
+  const totalKeys = ['requests', 'successful', 'failed', 'successRate', 'requestsPerSecond', 'bytesReceived', 'bytesPerSecond', 'mebibytesPerSecond', 'errorRate'];
+  const latencyKeys = ['min', 'mean', 'stddev', 'p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'max'];
 
   const totals = deltaFields(baseline.totals, candidate.totals, totalKeys);
   const latency = deltaFields(baseline.latencyMs, candidate.latencyMs, latencyKeys);
   const elapsed = deltaFields({ elapsedMs: baseline.elapsedMs }, { elapsedMs: candidate.elapsedMs }, ['elapsedMs']);
 
   return {
-    schemaVersion: 2,
+    schemaVersion: Math.max(baseline.schemaVersion ?? 2, candidate.schemaVersion ?? 2),
     generatedAt: new Date().toISOString(),
     baseline: { file: baseline._file ?? null, generatedAt: baseline.generatedAt ?? null, config: baseline.config ?? null, totals: baseline.totals ?? null, latencyMs: baseline.latencyMs ?? null },
     candidate: { file: candidate._file ?? null, generatedAt: candidate.generatedAt ?? null, config: candidate.config ?? null, totals: candidate.totals ?? null, latencyMs: candidate.latencyMs ?? null },
@@ -52,7 +52,8 @@ export function compareReports(baseline, candidate) {
       latencyMs: latency,
       elapsedMs: elapsed.elapsedMs ?? null,
       statusCodes: dictDiff(baseline.statusCodes, candidate.statusCodes),
-      errors: dictDiff(baseline.errors, candidate.errors)
+      errors: dictDiff(baseline.errors, candidate.errors),
+      latencyBuckets: dictDiff(baseline.latencyBuckets, candidate.latencyBuckets)
     },
     summary: buildSummary(totals, latency)
   };
@@ -64,10 +65,16 @@ function buildSummary(totals, latency) {
   if (rps) lines.push(`Throughput: ${fmt(rps.delta)} req/s (${fmtPct(rps.deltaPercent)})`);
   const p95 = latency.p95;
   if (p95) lines.push(`p95 latency: ${fmt(p95.delta)} ms (${fmtPct(p95.deltaPercent)})`);
+  const p99 = latency.p99;
+  if (p99) lines.push(`p99 latency: ${fmt(p99.delta)} ms (${fmtPct(p99.deltaPercent)})`);
   const sr = totals.successRate;
   if (sr) lines.push(`Success rate: ${fmt(sr.delta * 100, 2)} pp (${fmtPct(sr.deltaPercent)})`);
+  const er = totals.errorRate;
+  if (er) lines.push(`Error rate: ${fmt(er.delta * 100, 2)} pp (${fmtPct(er.deltaPercent)})`);
   const mib = totals.mebibytesPerSecond;
   if (mib) lines.push(`Bandwidth: ${fmt(mib.delta)} MiB/s (${fmtPct(mib.deltaPercent)})`);
+  const sd = latency.stddev;
+  if (sd) lines.push(`Std deviation: ${fmt(sd.delta)} ms (${fmtPct(sd.deltaPercent)})`);
   return lines;
 }
 
@@ -113,6 +120,12 @@ export function formatComparisonText(cmp) {
     out.push('');
     out.push('Error deltas:');
     for (const [k, v] of Object.entries(er)) out.push(`  ${k}: ${v.baseline} -> ${v.candidate} (delta ${v.delta >= 0 ? '+' : ''}${v.delta})`);
+  }
+  const lb = cmp.delta.latencyBuckets;
+  if (lb && Object.keys(lb).length) {
+    out.push('');
+    out.push('Latency distribution deltas:');
+    for (const [k, v] of Object.entries(lb)) out.push(`  ${k}ms: ${v.baseline} -> ${v.candidate} (delta ${v.delta >= 0 ? '+' : ''}${v.delta})`);
   }
   if (cmp.summary.length) {
     out.push('');
