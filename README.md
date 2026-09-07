@@ -123,6 +123,24 @@ GP-1 follows no redirects, sends a descriptive user agent, and never persists re
 
 The report is self-contained (inline CSS, no network fetches) and prints cleanly.
 
+## Standalone CLI & Interactive Menu
+
+GP-1 v0.4.0 adds a **fully interactive CLI menu** with high-fidelity terminal branding. When you run GP-1 without any arguments:
+
+```bash
+gp-1
+```
+
+It clears the terminal, displays the **GP-1 By Gopyr** ASCII art header, and lets you choose actions interactively from a numbered list:
+1. Run a custom load test (prompts for URL, duration, concurrency)
+2. Compare two JSON reports
+3. Generate HTML report from a JSON report
+4. Run AI penetration test via Strix (defaults to deep-scan mode)
+5. Show CLI help manual
+6. Exit
+
+This makes GP-1 extremely friendly for manual runs and debugging on local setups, while retaining its robust arguments-based CLI for automated pipeline integrations and CI environments.
+
 ## Authorized Penetration Testing (`gp-1 pentest`)
 
 GP-1 v0.4.0 adds an opt-in, authorized-only subcommand: `gp-1 pentest`. It integrates the **Strix AI autonomous penetration testing engine** into GP-1 for security scanning, vulnerability discovery, and white-box code auditing.

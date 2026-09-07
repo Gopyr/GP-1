@@ -11,10 +11,51 @@ import { parseRamp, totalRampDuration, concurrencyAt } from './ramp.mjs';
 import { enrichReportWithHistogram, renderHistogram } from './histogram.mjs';
 import { isPrivateHost } from './net.mjs';
 import { pentestHelp, parsePentestArgs, validatePentestTarget, preflightPentest, runPentest } from './pentest.mjs';
+import readline from 'node:readline/promises';
 
 const VERSION = '0.4.0';
 const HTTP_AGENT = new Agent({ connections: 400, pipelining: 1, keepAliveTimeout: 10_000, keepAliveMaxTimeout: 30_000 });
 const SETTINGS_PATH = new URL('../settings.json', import.meta.url);
+
+const GP1_LOGO = `
+ _______ _______    __
+|   _   |   _   |__|  |
+|       |       |  |  |
+|___|___|___|___|__|__|
+By Gopyr
+`;
+
+async function displayMainMenu() {
+  console.clear();
+  console.log(GP1_LOGO);
+  console.log(`
+GP-1 v${VERSION} - Pilih tindakan:
+
+1. Run Load Test
+2. Compare Reports
+3. Generate HTML Report
+4. Run AI Pentest
+5. Show Help
+6. Exit
+`);
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  let choice;
+  while (!choice) {
+    const answer = await rl.question('Masukkan pilihan (1-6): ');
+    if (['1', '2', '3', '4', '5', '6'].includes(answer)) {
+      choice = answer;
+    } else {
+      console.log('Pilihan tidak valid. Silakan coba lagi.');
+    }
+  }
+  rl.close();
+  return choice;
+}
 
 async function loadSettings() {
   const settings = JSON.parse(await readFile(SETTINGS_PATH, 'utf8'));
@@ -22,7 +63,7 @@ async function loadSettings() {
   return settings;
 }
 
-function showHelp(settings) {
+function displayHelp(settings) {
   const modeHint = settings ? ` (settings.json mode=${settings.mode} ${settings.profiles[String(settings.mode)]?.name ?? ''})` : '';
   console.log(`GP-1 ${VERSION}${modeHint}
 
@@ -46,7 +87,7 @@ HTTP options:
       --body-file <path>      Read request body from file
       --content-type <type>   Content-Type header (default: application/json for POST/PUT/PATCH)
   -H, --header <K:V>          Add custom header (repeatable)
-      --bearer <token>        Add Authorization: Bearer <token>
+      --bearer <token>        Add Authorization: Bearer ***
       --auth <user:pass>      Add Basic Authorization header
       --cookie <K=V>          Add cookie (repeatable)
       --insecure              Allow insecure TLS (skip cert verification)
@@ -69,27 +110,27 @@ Safety options:
       --method <name>         Transparent benchmark method label
 
 Assertion options:
-      --assert-status=<code>  Assert response status (=200, 2xx, <400)
-      --assert-body=<text>    Assert response body contains text
-      --assert-latency<ms     Assert per-request latency (<500)
-      --threshold <expr>      Assert post-run threshold (p95<500, success>99, rps>10)
+  --assert-status=<code>  Assert response status (=200, 2xx, <400)
+  --assert-body=<text>    Assert response body contains text
+  --assert-latency<ms     Assert per-request latency (<500)
+  --threshold <expr>      Assert post-run threshold (p95<500, success>99, rps>10)
 
 Output options:
   -o, --output <file>         Write JSON report to file
-      --html <file>           Also write standalone HTML report
-      --csv <file>            Write results as CSV
-      --ndjson                Stream per-request results as NDJSON to stdout
-      --quiet                 Suppress live ticker (useful for CI)
+  --html <file>           Also write standalone HTML report
+  --csv <file>            Write results as CSV
+  --ndjson                Stream per-request results as NDJSON to stdout
+  --quiet                 Suppress live ticker (useful for CI)
   -h, --help                  Show this help
-      --version               Show version
+  --version               Show version
 
 Compare options:
-      --output <file>         Write JSON diff to file
-      --html <file>           Write HTML diff to file
+  --output <file>         Write JSON diff to file
+  --html <file>           Write HTML diff to file
 
 HTML options:
   -o, --output <file>         Output HTML file
-      --stdout                Print HTML to stdout
+  --stdout                Print HTML to stdout
 
 Settings modes:
   mode=0  safe-observation: bounded read-only measurements
@@ -644,13 +685,86 @@ async function handlePentest(argv, settings) {
   await runPentest(opts, preflight, targetInfo);
 }
 
+async function handleInteractiveLoadTest(settings) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const url = await rl.question('Masukkan URL Target (e.g. http://localhost:3000/health): ');
+  const durStr = await rl.question('Masukkan Durasi (detik, default: 10): ');
+  const concStr = await rl.question('Masukkan Concurrency (jumlah worker, default: 10): ');
+  rl.close();
+
+  const duration = parseInt(durStr, 10) || 10;
+  const concurrency = parseInt(concStr, 10) || 10;
+  
+  const argv = ['-u', url, '-d', String(duration), '-c', String(concurrency)];
+  const options = parseArgs(argv, settings);
+  const target = validateTarget(options.url, options.profile, options);
+  const report = await run(options, target);
+  printReport(report);
+}
+
+async function handleInteractiveCompare() {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const baseline = await rl.question('Masukkan Path File Baseline (.json): ');
+  const candidate = await rl.question('Masukkan Path File Candidate (.json): ');
+  rl.close();
+  await handleCompare([baseline, candidate]);
+}
+
+async function handleInteractiveHtml() {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const file = await rl.question('Masukkan Path File Report JSON: ');
+  rl.close();
+  await handleHtml([file]);
+}
+
+async function handleInteractivePentest(settings) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const target = await rl.question('Masukkan Path Direktori atau URL Target Pentest: ');
+  const confirm = await rl.question('Apakah Anda diizinkan untuk menguji sistem ini? (y/n): ');
+  rl.close();
+
+  if (confirm.toLowerCase() !== 'y') {
+    console.log('Pentest dibatalkan.');
+    return;
+  }
+
+  // default mode deep untuk super kuat dan ampuh
+  const argv = [target, '--pentest-confirm', '--mode', 'deep'];
+  await handlePentest(argv, settings);
+}
+
 async function main() {
   const settings = await loadSettings();
   const rawArgs = process.argv.slice(2);
+  
   if (rawArgs.includes('--version')) {
     console.log(VERSION);
     return;
   }
+  if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
+    displayHelp(settings);
+    return;
+  }
+  
+  // Jika tidak ada argumen CLI, masuk ke mode interaktif
+  if (rawArgs.length === 0) {
+    const choice = await displayMainMenu();
+    if (choice === '1') {
+      await handleInteractiveLoadTest(settings);
+    } else if (choice === '2') {
+      await handleInteractiveCompare();
+    } else if (choice === '3') {
+      await handleInteractiveHtml();
+    } else if (choice === '4') {
+      await handleInteractivePentest(settings);
+    } else if (choice === '5') {
+      displayHelp(settings);
+    } else if (choice === '6') {
+      console.log('Goodbye!');
+    }
+    return;
+  }
+
   if (rawArgs[0] === 'compare') {
     await handleCompare(rawArgs.slice(1));
     return;
@@ -663,12 +777,9 @@ async function main() {
     await handlePentest(rawArgs.slice(1), settings);
     return;
   }
-  if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
-    showHelp(settings);
-    return;
-  }
+  
   const options = parseArgs(rawArgs, settings);
-  if (options.help) return showHelp(settings);
+  if (options.help) return displayHelp(settings);
   if (options.version) { console.log(VERSION); return; }
   const target = validateTarget(options.url, options.profile, options);
   const report = await run(options, target);
