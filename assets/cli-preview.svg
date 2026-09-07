@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 450" width="100%" height="100%">
+  <rect width="100%" height="100%" rx="10" fill="#0d1117" stroke="#30363d" stroke-width="1.5"/>
+  <circle cx="20" cy="20" r="6" fill="#ff5f56"/>
+  <circle cx="40" cy="20" r="6" fill="#ffbd2e"/>
+  <circle cx="60" cy="20" r="6" fill="#27c93f"/>
+  <text x="350" y="25" fill="#8b949e" font-family="monospace" font-size="12" text-anchor="middle">gopyr@vps:~ (gp-1)</text>
+  <line x1="0" y1="38" x2="700" y2="38" stroke="#30363d" stroke-width="1"/>
+  
+  <g font-family="monospace" font-size="13" font-weight="bold" fill="#c9d1d9" xml:space="preserve">
+    <text x="30" y="70" fill="#58a6ff">_______ _______    __</text>
+    <text x="30" y="85" fill="#58a6ff">|   _   |   _   |__|  |</text>
+    <text x="30" y="100" fill="#58a6ff">|       |       |  |  |</text>
+    <text x="30" y="115" fill="#58a6ff">|___|___|___|___|__|__|</text>
+    <text x="30" y="130" fill="#f0883e">By Gopyr</text>
+    
+    <text x="30" y="170" fill="#8b949e">GP-1 v0.4.0 - Pilih tindakan:</text>
+    
+    <text x="30" y="200" fill="#58a6ff">1. Run Load Test</text>
+    <text x="30" y="220" fill="#58a6ff">2. Compare Reports</text>
+    <text x="30" y="240" fill="#58a6ff">3. Generate HTML Report</text>
+    <text x="30" y="260" fill="#58a6ff">4. Run AI Pentest <tspan fill="#ff7b72" font-size="10">(Deep Scan)</tspan></text>
+    <text x="30" y="280" fill="#8b949e">5. Show Help</text>
+    <text x="30" y="300" fill="#ff7b72">6. Exit</text>
+    
+    <text x="30" y="340" fill="#3080f0">Masukkan pilihan (1-6): <tspan fill="#58a6ff" font-weight="normal">_</tspan></text>
+  </g>
+</svg>
