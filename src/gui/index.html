@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GP-1 Control Center</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --primary: #58a6ff;
+      --success: #238636;
+      --danger: #da3637;
+      --warn: #d29922;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px fill var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px fill var(--border);
+      border-radius: 6px;
+      padding: 20px;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 16px;
+      border-bottom: 1px fill var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 5px;
+      color: var(--text-muted);
+    }
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px fill var(--border);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px fill var(--border);
+      border-radius: 6px;
+      padding: 15px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--primary);
+      margin-top: 5px;
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-bottom: 20px;
+    }
+    #log {
+      background: #000;
+      color: #00ff00;
+      font-family: monospace;
+      padding: 15px;
+      height: 150px;
+      overflow-y: auto;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>GP-1 Control Center</h1>
+        <div class="subtitle">By Gopyr - Double-post Load testing &amp; Pentesting Dashboard</div>
+      </div>
+    </header>
+
+    <div class="stats-bar">
+      <div class="stat-card">
+        <label>Total Requests</label>
+        <div class="stat-val" id="stat-req">0</div>
+      </div>
+      <div class="stat-card">
+        <label>RPS</label>
+        <div class="stat-val" id="stat-rps">0</div>
+      </div>
+      <div class="stat-card">
+        <label>p95 Latency</label>
+        <div class="stat-val" id="stat-p95">-</div>
+      </div>
+      <div class="stat-card">
+        <label>Error Rate</label>
+        <div class="stat-val" id="stat-err">0%</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Konfigurasi Load Test</h2>
+        <div class="form-group">
+          <label>URL Target</label>
+          <input type="text" id="url" value="http://localhost:3000/health">
+        </div>
+        <div class="form-group">
+          <label>Method</label>
+          <select id="method">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Concurrency (Workers)</label>
+          <input type="number" id="concurrency" value="10">
+        </div>
+        <div class="form-group">
+          <label>Durasi (Detik)</label>
+          <input type="number" id="duration" value="10">
+        </div>
+        <div class="form-group">
+          <label>Custom Body (JSON)</label>
+          <input type="text" id="body" value="">
+        </div>
+        <button id="start-btn">JALANKAN LOAD TEST</button>
+      </div>
+
+      <div class="card">
+        <h2>Live Real-time Performance Chart</h2>
+        <div class="chart-container">
+          <canvas id="liveChart"></canvas>
+        </div>
+        <h2>Terminal Console Logs</h2>
+        <div id="log">Siap dijalankan...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const logDiv = document.getElementById('log');
+    const startBtn = document.getElementById('start-btn');
+    
+    function log(msg, color = '#00ff00') {
+      const p = document.createElement('p');
+      p.style.margin = '2px 0';
+      p.style.color = color;
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logDiv.appendChild(p);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // Chart.js init
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'RPS (Requests/sec)',
+            data: [],
+            borderColor: '#58a6ff',
+            backgroundColor: 'rgba(88, 166, 255, 0.1)',
+            borderWidth: 2,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Latency (ms)',
+            data: [],
+            borderColor: '#ff7b72',
+            backgroundColor: 'rgba(255, 123, 114, 0.1)',
+            borderWidth: 2,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            grid: { color: '#30363d' },
+            ticks: { color: '#8b949e' }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#8b949e' }
+          },
+          x: {
+            grid: { color: '#30363d' },
+            ticks: { color: '#8b949e' }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#c9d1d9' } }
+        }
+      }
+    });
+
+    let sse = null;
+
+    startBtn.addEventListener('click', () => {
+      if (sse) {
+        sse.close();
+      }
+      
+      log('Memulai Load Test...', '#58a6ff');
+      chart.data.labels = [];
+      chart.data.datasets[0].data = [];
+      chart.data.datasets[1].data = [];
+      chart.update();
+
+      const url = document.getElementById('url').value;
+      const method = document.getElementById('method').value;
+      const concurrency = document.getElementById('concurrency').value;
+      const duration = document.getElementById('duration').value;
+      const body = document.getElementById('body').value;
+
+      const query = new URLSearchParams({ url, method, concurrency, duration, body }).toString();
+      sse = new EventSource(`/api/run?${query}`);
+
+      sse.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'tick') {
+          log(`Tick: ${data.req} req | ${data.rps} r/s | Latency ${data.lat}ms`, '#c9d1d9');
+          
+          document.getElementById('stat-req').textContent = data.req;
+          document.getElementById('stat-rps').textContent = data.rps;
+          document.getElementById('stat-p95').textContent = data.p95 ? `${data.p95}ms` : '-';
+          document.getElementById('stat-err').textContent = `${data.err}%`;
+
+          // Add to chart
+          const timeLabel = `${data.elapsed}s`;
+          chart.data.labels.push(timeLabel);
+          chart.data.datasets[0].data.push(data.rps);
+          chart.data.datasets[1].data.push(data.lat);
+          if (chart.data.labels.length > 30) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+            chart.data.datasets[1].data.shift();
+          }
+          chart.update();
+        } else if (data.type === 'done') {
+          log('Uji Selesai! Laporan otomatis disimpan.', '#238636');
+          sse.close();
+        } else if (data.type === 'error') {
+          log(`Error: ${data.message}`, '#da3637');
+          sse.close();
+        }
+      };
+
+      sse.onerror = () => {
+        log('Koneksi terputus.', '#da3637');
+        sse.close();
+      };
+    });
+  </script>
+</body>
+</html>

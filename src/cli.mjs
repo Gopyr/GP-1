@@ -12,6 +12,8 @@ import { enrichReportWithHistogram, renderHistogram } from './histogram.mjs';
 import { isPrivateHost } from './net.mjs';
 import { pentestHelp, parsePentestArgs, validatePentestTarget, preflightPentest, runPentest } from './pentest.mjs';
 import { writeDefaultOutputs } from './io.mjs';
+import { startGuiServer } from './gui.mjs';
+import { getAiRampRecommendation, printAiReportAnalysis } from './ai-benchmark.mjs';
 import readline from 'node:readline/promises';
 
 const VERSION = '0.4.0';
@@ -32,12 +34,14 @@ async function displayMainMenu() {
   console.log(`
 GP-1 v${VERSION} - Pilih tindakan:
 
-1. Run Load Test
-2. Compare Reports
-3. Generate HTML Report
-4. Run AI Pentest
-5. Show Help
-6. Exit
+1. Run Load Test (CLI Standar)
+2. Run AI-Driven Load Test (Pintar / Dinamis)
+3. Run GUI Dashboard (Visual Real-time)
+4. Run AI Pentest (Security Audit)
+5. Compare Reports
+6. Generate HTML Report
+7. Show Help
+8. Exit
 `);
 
   const rl = readline.createInterface({
@@ -47,8 +51,8 @@ GP-1 v${VERSION} - Pilih tindakan:
 
   let choice;
   while (!choice) {
-    const answer = await rl.question('Masukkan pilihan (1-6): ');
-    if (['1', '2', '3', '4', '5', '6'].includes(answer)) {
+    const answer = await rl.question('Masukkan pilihan (1-8): ');
+    if (['1', '2', '3', '4', '5', '6', '7', '8'].includes(answer)) {
       choice = answer;
     } else {
       console.log('Pilihan tidak valid. Silakan coba lagi.');
@@ -704,6 +708,27 @@ async function handleInteractiveLoadTest(settings) {
   printReport(report);
 }
 
+async function handleInteractiveAiBenchmark(settings) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const url = await rl.question('Masukkan URL Target untuk AI Benchmark: ');
+  rl.close();
+
+  const apiKey = process.env.LLM_API_KEY || '9r_tUFbyBHOZUEhQb81Q6Wlzr-ny6tejC_WISuCu7x_Cos';
+  const rampSpec = await getAiRampRecommendation(url, apiKey);
+  console.log(`[GP-1 AI] Rekomendasi Ramp Spec dari AI: "${rampSpec}"`);
+
+  const argv = ['-u', url, '-r', rampSpec];
+  const options = parseArgs(argv, settings);
+  const target = validateTarget(options.url, options.profile, options);
+  
+  console.log('[GP-1 AI] Menjalankan load test dengan parameter cerdas AI...');
+  const report = await run(options, target);
+  await writeDefaultOutputs(report, options);
+  printReport(report);
+
+  await printAiReportAnalysis(report, apiKey);
+}
+
 async function handleInteractiveCompare() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const baseline = await rl.question('Masukkan Path File Baseline (.json): ');
@@ -748,20 +773,45 @@ async function main() {
     return;
   }
   
+  if (rawArgs.includes('--gui')) {
+    startGuiServer();
+    return;
+  }
+  if (rawArgs.includes('--ai-benchmark')) {
+    const urlIdx = rawArgs.indexOf('--ai-benchmark');
+    const targetUrl = rawArgs[urlIdx + 1];
+    if (!targetUrl || targetUrl.startsWith('-')) throw new Error('--ai-benchmark requires a target URL');
+    const apiKey = process.env.LLM_API_KEY || '9r_tUFbyBHOZUEhQb81Q6Wlzr-ny6tejC_WISuCu7x_Cos';
+    const rampSpec = await getAiRampRecommendation(targetUrl, apiKey);
+    console.log(`[GP-1 AI] Rekomendasi Ramp Spec dari AI: "${rampSpec}"`);
+    const argv = ['-u', targetUrl, '-r', rampSpec];
+    const options = parseArgs(argv, settings);
+    const target = validateTarget(options.url, options.profile, options);
+    const report = await run(options, target);
+    await writeDefaultOutputs(report, options);
+    printReport(report);
+    await printAiReportAnalysis(report, apiKey);
+    return;
+  }
+
   // Jika tidak ada argumen CLI, masuk ke mode interaktif
   if (rawArgs.length === 0) {
     const choice = await displayMainMenu();
     if (choice === '1') {
       await handleInteractiveLoadTest(settings);
     } else if (choice === '2') {
-      await handleInteractiveCompare();
+      await handleInteractiveAiBenchmark(settings);
     } else if (choice === '3') {
-      await handleInteractiveHtml();
+      startGuiServer();
     } else if (choice === '4') {
       await handleInteractivePentest(settings);
     } else if (choice === '5') {
-      displayHelp(settings);
+      await handleInteractiveCompare();
     } else if (choice === '6') {
+      await handleInteractiveHtml();
+    } else if (choice === '7') {
+      displayHelp(settings);
+    } else if (choice === '8') {
       console.log('Goodbye!');
     }
     return;
