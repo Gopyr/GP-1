@@ -11,6 +11,7 @@ import { parseRamp, totalRampDuration, concurrencyAt } from './ramp.mjs';
 import { enrichReportWithHistogram, renderHistogram } from './histogram.mjs';
 import { isPrivateHost } from './net.mjs';
 import { pentestHelp, parsePentestArgs, validatePentestTarget, preflightPentest, runPentest } from './pentest.mjs';
+import { writeDefaultOutputs } from './io.mjs';
 import readline from 'node:readline/promises';
 
 const VERSION = '0.4.0';
@@ -699,6 +700,7 @@ async function handleInteractiveLoadTest(settings) {
   const options = parseArgs(argv, settings);
   const target = validateTarget(options.url, options.profile, options);
   const report = await run(options, target);
+  await writeDefaultOutputs(report, options);
   printReport(report);
 }
 
@@ -783,6 +785,10 @@ async function main() {
   if (options.version) { console.log(VERSION); return; }
   const target = validateTarget(options.url, options.profile, options);
   const report = await run(options, target);
+  
+  // Auto-save sequential outputs if not overridden or always save to gp1_output alongside
+  await writeDefaultOutputs(report, options);
+
   if (options.output) await writeFile(options.output, `${JSON.stringify(report, null, 2)}\n`);
   if (options.htmlOutput) {
     const html = generateHtml(report);
