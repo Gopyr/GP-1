@@ -11,3 +11,4 @@ experiments/results/*.json
 experiments/results/**/*.log
 __pycache__/
 *.pyc
+gp1_output/
