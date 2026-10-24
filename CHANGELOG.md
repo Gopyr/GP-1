@@ -28,3 +28,4 @@ All notable changes to GP-1 are documented here.
 ### Explicitly out of scope
 
 - Distributed traffic generation, protocol exploits, evasion, credential testing, arbitrary request-body flooding, and unapproved public-target measurement.
+- 2026-10-25 fix: clamp negative index
